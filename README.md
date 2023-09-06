@@ -1,6 +1,14 @@
 # Chronoqueue Python SDK
 
-The Chronoqueue Python SDK provides a simple and intuitive interface for interacting with the Chronoqueue service using gRPC.
+The official Python SDK for the Chronoqueue service. Seamlessly integrate and manage Chronoqueue functionalities in Python applications. Provides an intuitive interface for interacting with the Chronoqueue service using gRPC, with optional SSL/TLS support. Designed for both development and production environments.
+
+## Key Features:
+
+* Easy Integration: Intuitive classes and methods that align with Chronoqueue's core features.
+* gRPC Support: Efficiently communicate with the Chronoqueue service using gRPC.
+Optional SSL/TLS: Toggle SSL/TLS support based on your environment and security needs.
+* Comprehensive Documentation: Includes a user guide, API reference, tutorials, and more to ensure smooth implementation.
+* Unit Tests: Equipped with pytest based unit tests to ensure reliability and ease of development.
 
 ## Table of Contents
 
