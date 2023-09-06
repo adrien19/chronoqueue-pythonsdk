@@ -1,0 +1,5 @@
+grpcio
+grpcio-tools==4.24.2
+grpclib
+protobuf
+pytest
