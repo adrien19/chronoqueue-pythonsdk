@@ -33,13 +33,18 @@ Ensure you also hvr `grcpcio`installed:
 pip install grpcio
 ```
 
-## Getting Started
+## Setup
+1. Use Poetry for dependency management:
 
-Before you can interact with the Chronoqueue service, you must generate the necessary gRPC classes. Run the provided shell script to generate these:
+    ```bash 
+    poetry install
+    ```
 
-```bash
-./generate_proto_classes_from_github.sh
-```
+2. Before you can interact with the Chronoqueue service, you must generate the necessary gRPC classes. Run the provided shell script to generate these:
+
+    ```bash
+    ./generate_proto_classes_from_github.sh
+    ```
 
 This script fetches the necessary .proto files and generates Python gRPC classes for you.
 
@@ -67,17 +72,19 @@ With the client, you can interact with the Chronoqueue service:
 
 * Creating a Queue:
     ```python
-    response = client.create_queue("my_queue")
+    response = client.create_queue(name="my_queue")
     ```
 
 * Delete a Queue:
     ```python
-    response = client.delete_queue("my_queue")
+    response = client.delete_queue(name="my_queue")
     ```
 
 * Post a Message:
     ```python
-    response = client.post_message(queue_name="my_queue", content="Hello, Chronoqueue!")
+    from chronoqueue.utils import PostMessageParams
+    msg_params = PostMessageParams(message_id="12345", data={"key": "value"}, queue_name="my_queue")
+    response = client.post_message(msg_params)
     ```
 
 ## Example 
@@ -87,21 +94,37 @@ Here's a simple example demonstrating how to use the SDK in another Python proje
 from chronoqueue import ChronoqueueClient
 
 # Create a client instance
-client = ChronoqueueClient(host='localhost', port=50051, cert_path='path/to/your/certificate.pem')
+client = ChronoqueueClient(host='localhost', port=50051, use_tls=True, cert_path='path/to/your/certificate.pem')
 
 # Create a new queue
-response = client.create_queue("test_queue")
+response = client.create_queue(name="test_queue")
 print(f"Queue created with response: {response}")
 
 # Post a message to the queue
-message_response = client.post_message(queue_name="test_queue", content="Hello, Chronoqueue!")
+msg_params = PostMessageParams(message_id="12345", data={"greetings": "Hello, Chronoqueue!"}, queue_name="test_queue")
+message_response = client.post_message(msg_params)
 print(f"Message posted with response: {message_response}")
 
 # Clean up by deleting the queue
-delete_response = client.delete_queue("test_queue")
+delete_response = client.delete_queue(name="test_queue")
 print(f"Queue deleted with response: {delete_response}")
 
 ```
 
+## Pytest
+The tests are written in /tests. To trigget then, use use below command: 
+```bash 
+poetry run pytest
+```
+
+## Documentation
+
+Further documentation can be found in the docs/ directory, including:
+
+* User Guide: Step-by-step instructions on setting up and using the SDK.
+* API Reference: Detailed information on each method and its parameters.
+* Tutorials: In-depth guides and use-cases to help you make the most of Chronoqueue.
+
 ## License
-tbd
+
+MIT

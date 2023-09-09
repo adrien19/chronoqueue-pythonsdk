@@ -1,0 +1,35 @@
+
+[tool.poetry]
+name = "chronoqueue-sdk"
+version = "0.1.0"
+description = "Python SDK for interacting with the Chronoqueue service"
+authors = ["Adrien <n.adrien@mun.ca>"]
+license = "MIT"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11"
+]
+keywords = ["chronoqueue", "grpc", "sdk"]
+
+[tool.poetry.dependencies]
+python = "^3.10"  # Minimum supported version
+grpcio = "^1.37.1"
+
+[tool.poetry.dev-dependencies]
+grpcio-tools = "4.24.2"
+mypy-protobuf = "^2.4"
+pytest = "^6.2.4"
+
+
+[tool.poetry.urls]
+Source = "https://github.com/adrien19/chronoqueue_sdk"
+Tracker = "https://github.com/adrien19/chronoqueue_sdk/issues"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
