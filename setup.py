@@ -10,8 +10,7 @@ setup(
     extras_require={
         "dev": [  # Optional dependencies for development
             "grpcio-tools",  # Required for generating gRPC Python classes
-            "grpclib", # Required for generating gRPC Python classes
-            "protobuf", # Required for generating gRPC Python classes
+            "mypy-protobuf", # Required for generating gRPC Python classes
             "pytest", # Required for unit test
         ]
     },

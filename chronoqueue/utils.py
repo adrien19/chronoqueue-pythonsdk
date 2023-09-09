@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Optional, Dict
 from enum import Enum
-from proto import chronoqueue_pb2
+from .api.v1 import chronoqueue_pb2
 
 
 class MessageState(Enum):

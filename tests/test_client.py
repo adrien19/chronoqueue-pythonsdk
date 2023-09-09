@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from chronoqueue.client import ChronoqueueClient
 from chronoqueue.utils import PostMessageParams, \
     AcknowledgeMessageParams, PeekQueueMessagesParams, MessageState
-from proto import chronoqueue_pb2, chronoqueue_grpc
+from chronoqueue.api.v1 import chronoqueue_pb2, chronoqueue_pb2_grpc
 
 @pytest.fixture
 def mock_client():
@@ -12,7 +12,7 @@ def mock_client():
     client = ChronoqueueClient('localhost', '50051', use_tls=False)
     client.channel = mock_channel
     # Mock the ChronoQueueStub
-    client.stub = Mock(spec=chronoqueue_grpc.ChronoQueueStub(mock_channel))
+    client.stub = Mock(spec=chronoqueue_pb2_grpc.ChronoQueueStub(mock_channel))
     return client
 
 def test_create_queue(mock_client: ChronoqueueClient):

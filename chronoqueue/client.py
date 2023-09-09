@@ -1,10 +1,9 @@
 import grpc
-import json
 import logging
 from .exceptions import InitializationError, RpcOperationError
 from .utils import PostMessageParams, PostMessageOptions, \
     AcknowledgeMessageParams, PeekQueueMessagesParams, QueueOptions, _create_post_message_request
-from proto import chronoqueue_grpc, chronoqueue_pb2
+from .api.v1 import chronoqueue_pb2_grpc, chronoqueue_pb2
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +30,7 @@ class ChronoqueueClient:
     channel : grpc.Channel
         The gRPC channel used for communication with the Chronoqueue service.
 
-    stub : chronoqueue_grpc.ChronoQueueStub
+    stub : chronoqueue_pb2_grpc.ChronoQueueStub
         The gRPC stub generated from the protobuf definitions, enabling direct interaction with 
         the Chronoqueue service.
 
@@ -96,7 +95,7 @@ class ChronoqueueClient:
             self.channel = grpc.secure_channel(f"{host}:{port}", credentials)
         else:
             self.channel = grpc.insecure_channel(f"{host}:{port}")
-        self.stub = chronoqueue_grpc.ChronoQueueStub(self.channel)
+        self.stub = chronoqueue_pb2_grpc.ChronoQueueStub(self.channel)
 
     def _handle_error(self, error, handler=None):
         """Internal method to handle errors. Calls the custom error handler if set."""
