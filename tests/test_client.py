@@ -4,7 +4,7 @@ from unittest.mock import Mock
 from chronoqueue.client import ChronoqueueClient
 from chronoqueue.utils import PostMessageParams, \
     AcknowledgeMessageParams, PeekQueueMessagesParams, MessageState
-from proto import service_pb2, service_grpc
+from proto import chronoqueue_pb2, chronoqueue_grpc
 
 @pytest.fixture
 def mock_client():
@@ -12,12 +12,12 @@ def mock_client():
     client = ChronoqueueClient('localhost', '50051', use_tls=False)
     client.channel = mock_channel
     # Mock the ChronoQueueStub
-    client.stub = Mock(spec=service_grpc.ChronoQueueStub(mock_channel))
+    client.stub = Mock(spec=chronoqueue_grpc.ChronoQueueStub(mock_channel))
     return client
 
 def test_create_queue(mock_client: ChronoqueueClient):
         # Mock the gRPC response
-        mock_response = service_pb2.CreateQueueResponse()
+        mock_response = chronoqueue_pb2.CreateQueueResponse()
         mock_client.stub.CreateQueue.return_value = mock_response
 
         # Call the client's method
@@ -29,7 +29,7 @@ def test_create_queue(mock_client: ChronoqueueClient):
 
 def test_delete_queue(mock_client: ChronoqueueClient):
     # Mock the gRPC response
-    mock_response = service_pb2.DeleteQueueResponse()
+    mock_response = chronoqueue_pb2.DeleteQueueResponse()
     mock_client.stub.DeleteQueue.return_value = mock_response
 
     # Call the client's method
@@ -41,8 +41,8 @@ def test_delete_queue(mock_client: ChronoqueueClient):
 
 def test_post_message(mock_client: ChronoqueueClient):
     # Mock the gRPC response
-    # mock_response = service_pb2.PostMessageResponse(success=True, message_id="12345")
-    mock_response = service_pb2.PostMessageResponse()
+    # mock_response = chronoqueue_pb2.PostMessageResponse(success=True, message_id="12345")
+    mock_response = chronoqueue_pb2.PostMessageResponse()
     mock_client.stub.PostMessage.return_value = mock_response
 
     # create required params
@@ -59,7 +59,7 @@ def test_post_message(mock_client: ChronoqueueClient):
 
 def test_get_next_message(mock_client: ChronoqueueClient):
     # Mock the gRPC response
-    mock_response = service_pb2.GetNextMessageResponse()
+    mock_response = chronoqueue_pb2.GetNextMessageResponse()
     mock_client.stub.GetNextMessage.return_value = mock_response
 
     # Call the client's method
@@ -72,7 +72,7 @@ def test_get_next_message(mock_client: ChronoqueueClient):
 
 def test_acknowledge_message(mock_client: ChronoqueueClient):
     # Mock the gRPC response
-    mock_response = service_pb2.AcknowledgeMessageResponse()
+    mock_response = chronoqueue_pb2.AcknowledgeMessageResponse()
     mock_client.stub.AcknowledgeMessage.return_value = mock_response
 
     # Prepare params
@@ -88,7 +88,7 @@ def test_acknowledge_message(mock_client: ChronoqueueClient):
 
 def test_renew_message_lease(mock_client: ChronoqueueClient):
     # Mock the gRPC response
-    mock_response = service_pb2.RenewMessageLeaseResponse()
+    mock_response = chronoqueue_pb2.RenewMessageLeaseResponse()
     mock_client.stub.RenewMessageLease.return_value = mock_response
 
     # Call the client's method
@@ -101,7 +101,7 @@ def test_renew_message_lease(mock_client: ChronoqueueClient):
 
 def test_peek_queue_messages(mock_client: ChronoqueueClient):
     # Mock the gRPC response
-    mock_response = service_pb2.PeekQueueMessagesResponse()
+    mock_response = chronoqueue_pb2.PeekQueueMessagesResponse()
     mock_client.stub.PeekQueueMessages.return_value = mock_response
 
     # Prepare params
@@ -117,7 +117,7 @@ def test_peek_queue_messages(mock_client: ChronoqueueClient):
 
 def test_get_queue_state(mock_client: ChronoqueueClient):
     # Mock the gRPC response
-    mock_response = service_pb2.GetQueueStateResponse()
+    mock_response = chronoqueue_pb2.GetQueueStateResponse()
     mock_client.stub.GetQueueState.return_value = mock_response
 
     # Call the client's method

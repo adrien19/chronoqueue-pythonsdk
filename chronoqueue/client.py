@@ -4,7 +4,7 @@ import logging
 from .exceptions import InitializationError, RpcOperationError
 from .utils import PostMessageParams, PostMessageOptions, \
     AcknowledgeMessageParams, PeekQueueMessagesParams, QueueOptions, _create_post_message_request
-from proto import service_grpc, service_pb2
+from proto import chronoqueue_grpc, chronoqueue_pb2
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +31,7 @@ class ChronoqueueClient:
     channel : grpc.Channel
         The gRPC channel used for communication with the Chronoqueue service.
 
-    stub : service_grpc.ChronoQueueStub
+    stub : chronoqueue_grpc.ChronoQueueStub
         The gRPC stub generated from the protobuf definitions, enabling direct interaction with 
         the Chronoqueue service.
 
@@ -96,7 +96,7 @@ class ChronoqueueClient:
             self.channel = grpc.secure_channel(f"{host}:{port}", credentials)
         else:
             self.channel = grpc.insecure_channel(f"{host}:{port}")
-        self.stub = service_grpc.ChronoQueueStub(self.channel)
+        self.stub = chronoqueue_grpc.ChronoQueueStub(self.channel)
 
     def _handle_error(self, error, handler=None):
         """Internal method to handle errors. Calls the custom error handler if set."""
@@ -144,8 +144,8 @@ class ChronoqueueClient:
 
         """
         try:
-            queueInfo = service_pb2.Queue(name=name, metadata=options)
-            request = service_pb2.CreateQueueRequest(queue=queueInfo)
+            queueInfo = chronoqueue_pb2.Queue(name=name, metadata=options)
+            request = chronoqueue_pb2.CreateQueueRequest(queue=queueInfo)
             response = self.stub.CreateQueue(request)
             return response
         except grpc.RpcError as e:
@@ -188,7 +188,7 @@ class ChronoqueueClient:
 
         """
         try:
-            request = service_pb2.DeleteQueueRequest(name=name)
+            request = chronoqueue_pb2.DeleteQueueRequest(name=name)
             response = self.stub.DeleteQueue(request)
             return response
         except grpc.RpcError as e:
@@ -291,7 +291,7 @@ class ChronoqueueClient:
 
         """
         try:
-            request = service_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=lease_duration)
+            request = chronoqueue_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=lease_duration)
             response = self.stub.GetNextMessage(request)
             return response
         except grpc.RpcError as e:
@@ -340,7 +340,7 @@ class ChronoqueueClient:
 
         """
         try:
-            request = service_pb2.AcknowledgeMessageRequest(
+            request = chronoqueue_pb2.AcknowledgeMessageRequest(
                 message_id=params.message_id, 
                 queue_name=params.queue_name,
                 state=params.state
@@ -392,7 +392,7 @@ class ChronoqueueClient:
 
         """
         try:
-            request = service_pb2.RenewMessageLeaseRequest(message_id=message_id, lease_duration=new_lease_duration)
+            request = chronoqueue_pb2.RenewMessageLeaseRequest(message_id=message_id, lease_duration=new_lease_duration)
             response = self.stub.RenewMessageLease(request)
             return response
         except grpc.RpcError as e:
@@ -440,7 +440,7 @@ class ChronoqueueClient:
 
         """
         try:
-            request = service_pb2.PeekQueueMessagesRequest(
+            request = chronoqueue_pb2.PeekQueueMessagesRequest(
                 queue_name=params.queue_name, 
                 limit=params.limit, 
                 priority_range=params.priority_range
@@ -488,7 +488,7 @@ class ChronoqueueClient:
 
         """
         try:
-            request = service_pb2.GetQueueStateRequest(queue_name=queue_name)
+            request = chronoqueue_pb2.GetQueueStateRequest(queue_name=queue_name)
             response = self.stub.GetQueueState(request)
             return response
         except grpc.RpcError as e:

@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Optional, Dict
 from enum import Enum
-from proto import service_pb2
+from proto import chronoqueue_pb2
 
 
 class MessageState(Enum):
@@ -24,12 +24,12 @@ class MessageState(Enum):
     ERRORED : MessageState
         An error occurred during message processing.
     """
-    INVISIBLE = service_pb2.Message.Metadata.State.INVISIBLE
-    PENDING = service_pb2.Message.Metadata.State.PENDING
-    RUNNING = service_pb2.Message.Metadata.State.RUNNING
-    COMPLETED = service_pb2.Message.Metadata.State.COMPLETED
-    CANCELED = service_pb2.Message.Metadata.State.CANCELED
-    ERRORED = service_pb2.Message.Metadata.State.ERRORED
+    INVISIBLE = chronoqueue_pb2.Message.Metadata.State.INVISIBLE
+    PENDING = chronoqueue_pb2.Message.Metadata.State.PENDING
+    RUNNING = chronoqueue_pb2.Message.Metadata.State.RUNNING
+    COMPLETED = chronoqueue_pb2.Message.Metadata.State.COMPLETED
+    CANCELED = chronoqueue_pb2.Message.Metadata.State.CANCELED
+    ERRORED = chronoqueue_pb2.Message.Metadata.State.ERRORED
 
 @dataclass
 class PostMessageParams:
@@ -68,7 +68,7 @@ class PostMessageOptions:
         Metadata associated with the message's payload.
     """
     priority: int = 0
-    state: MessageState = service_pb2.Message.Metadata.State.INVISIBLE
+    state: MessageState = chronoqueue_pb2.Message.Metadata.State.INVISIBLE
     invisibility_duration: int = 0
     attempts_left: int = 3
     data_metadata: Dict = field(default_factory=dict)
@@ -137,8 +137,8 @@ class QueueType(Enum):
     EXCLUSIVE : QueueType
         An exclusive queue type that supports specific features such as unique messages.
     """
-    SIMPLE = service_pb2.Queue.Options.Type.SIMPLE
-    EXCLUSIVE = service_pb2.Queue.Options.Type.EXCLUSIVE
+    SIMPLE = chronoqueue_pb2.Queue.Options.Type.SIMPLE
+    EXCLUSIVE = chronoqueue_pb2.Queue.Options.Type.EXCLUSIVE
 
 @dataclass
 class QueueOptions:
@@ -169,7 +169,7 @@ class QueueOptions:
     invisibility_duration: Optional[int]
 
 
-def _create_post_message_request(params: PostMessageParams, options: PostMessageOptions) -> service_pb2.PostMessageRequest:
+def _create_post_message_request(params: PostMessageParams, options: PostMessageOptions) -> chronoqueue_pb2.PostMessageRequest:
     """
     Creates a PostMessageRequest object given options.
 
@@ -186,10 +186,10 @@ def _create_post_message_request(params: PostMessageParams, options: PostMessage
     data_bytes = json.dumps(params.data).encode('utf-8')
 
     # Create the Payload message with the provided data and an empty metadata.
-    payload = service_pb2.Payload(metadata=options.data_metadata, data=data_bytes)
+    payload = chronoqueue_pb2.Payload(metadata=options.data_metadata, data=data_bytes)
 
     # Create the Message's Metadata using provided options or default values.
-    metadata = service_pb2.Message.Metadata(
+    metadata = chronoqueue_pb2.Message.Metadata(
         payload=payload,
         state=options.state,
         invisibility_duration=options.invisibility_duration,
@@ -197,14 +197,14 @@ def _create_post_message_request(params: PostMessageParams, options: PostMessage
     )
 
     # Create the main Message using provided message_id, options or default values.
-    message = service_pb2.Message(
+    message = chronoqueue_pb2.Message(
         message_id=params.message_id,
         priority=options.priority,
         metadata=metadata
     )
 
     # Finally, create the PostMessageRequest with a default queue_name or from options.
-    post_message_request = service_pb2.PostMessageRequest(
+    post_message_request = chronoqueue_pb2.PostMessageRequest(
         queue_name=params.queue_name,
         message=message
     )

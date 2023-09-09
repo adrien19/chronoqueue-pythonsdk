@@ -11,13 +11,13 @@ PROTO_PATH="./proto"
 # read -s TOKEN
 
 # # Fetch the .proto file using curl
-# curl -H "Authorization: token $TOKEN" -o $PROTO_PATH/service.proto $PROTO_URL
+# curl -H "Authorization: token $TOKEN" -o $PROTO_PATH/chronoqueue.proto $PROTO_URL
 
 # Use the protoc compiler to generate the Python classes
-protoc -I=$PROTO_PATH --python_out=$PROTO_PATH $PROTO_PATH/service.proto
-# protoc -I=$PROTO_PATH --grpc_python_out=$PROTO_PATH --plugin=protoc-gen-grpc_python=$(which grpc_python_plugin) $PROTO_PATH/service.proto
-# protoc -I=$PROTO_PATH --grpc_python_out=$PROTO_PATH --plugin=protoc-gen-grpc_python=./.venv/bin/protoc-gen-grpclib_python $PROTO_PATH/service.proto
-protoc -I=$PROTO_PATH --grpc_python_out=$PROTO_PATH --plugin=protoc-gen-grpc_python=./.venv/bin/protoc-gen-python_grpc $PROTO_PATH/service.proto
+protoc -I=$PROTO_PATH --python_out=$PROTO_PATH $PROTO_PATH/chronoqueue.proto
+# protoc -I=$PROTO_PATH --grpc_python_out=$PROTO_PATH --plugin=protoc-gen-grpc_python=$(which grpc_python_plugin) $PROTO_PATH/chronoqueue.proto
+# protoc -I=$PROTO_PATH --grpc_python_out=$PROTO_PATH --plugin=protoc-gen-grpc_python=./.venv/bin/protoc-gen-grpclib_python $PROTO_PATH/chronoqueue.proto
+protoc -I=$PROTO_PATH --grpc_python_out=$PROTO_PATH --plugin=protoc-gen-grpc_python=./.venv/bin/protoc-gen-python_grpc $PROTO_PATH/chronoqueue.proto
 
 echo "Python classes generated successfully!"
 
