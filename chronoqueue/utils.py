@@ -230,3 +230,55 @@ def _create_post_message_request(params: PostMessageParams, options: PostMessage
 
     return post_message_request
 
+
+class ResponseWrapper:
+    """
+    A wrapper for gRPC protobuf responses that provides utility methods for converting
+    the response to other formats, such as a dictionary, and for accessing the raw protobuf response.
+
+    Attributes:
+        _response_protobuf: The raw gRPC protobuf response object.
+        _converter_func: A function that converts the protobuf response to a dictionary.
+    """
+
+    def __init__(self, response_protobuf, converter_func):
+        """
+        Initializes the ResponseWrapper with the provided protobuf response and converter function.
+
+        Args:
+            response_protobuf: The gRPC protobuf response object.
+            converter_func: A function that converts the protobuf response to a dictionary.
+        """
+        self._response_protobuf = response_protobuf
+        self._converter_func = converter_func
+
+    def to_dict(self):
+        """
+        Converts the wrapped protobuf response to a dictionary using the provided converter function.
+
+        Returns:
+            dict: The converted dictionary representation of the protobuf response.
+        """
+        return self._converter_func(response_protobuf=self._response_protobuf)
+
+    def to_proto(self):
+        """
+        Retrieves the raw gRPC protobuf response.
+
+        Returns:
+            The raw gRPC protobuf response object.
+        """
+        return self._response_protobuf
+
+    def __getattr__(self, name):
+        """
+        Delegates attribute access to the underlying protobuf object. This allows for direct access
+        to the fields of the wrapped protobuf response.
+
+        Args:
+            name (str): The name of the attribute to access.
+
+        Returns:
+            The value of the specified attribute in the wrapped protobuf response.
+        """
+        return getattr(self._response_protobuf, name)

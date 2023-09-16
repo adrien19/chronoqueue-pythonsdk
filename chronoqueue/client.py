@@ -2,7 +2,10 @@ import grpc
 import logging
 from .exceptions import InitializationError, RpcOperationError
 from .utils import TlsConfig, PostMessageParams, PostMessageOptions, \
-    AcknowledgeMessageParams, PeekQueueMessagesParams, QueueOptions, _create_post_message_request
+    AcknowledgeMessageParams, PeekQueueMessagesParams, QueueOptions, _create_post_message_request, \
+    ResponseWrapper
+from .converters.response_converters import *
+# from .converters.response_converters import protobuf_to_create_queue_response
 from .api.v1 import chronoqueue_pb2_grpc, chronoqueue_pb2
 
 # Initialize logging
@@ -102,7 +105,7 @@ class ChronoqueueClient:
             # Default behavior is to raise the error
             raise error
 
-    def create_queue(self, name: str, options: QueueOptions = None, error_handler=None) -> chronoqueue_pb2.CreateQueueResponse:
+    def create_queue(self, name: str, options: QueueOptions = None, error_handler=None) -> ResponseWrapper:
         """
         Creates a new queue in the Chronoqueue service with the specified parameters.
 
@@ -144,13 +147,13 @@ class ChronoqueueClient:
             queueInfo = chronoqueue_pb2.Queue(name=name, metadata=queueOptions)
             request = chronoqueue_pb2.CreateQueueRequest(queue=queueInfo)
             response = self.stub.CreateQueue(request)
-            return response
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_create_queue_response)
         except grpc.RpcError as e:
             logging.error(f"Error creating queue: {e.details()}")
             error = RpcOperationError(f"Failed to create queue due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
-    def delete_queue(self, name, error_handler=None) -> chronoqueue_pb2.DeleteQueueResponse:
+    def delete_queue(self, name, error_handler=None) -> ResponseWrapper:
         """
         Deletes a specified queue from the Chronoqueue service.
 
@@ -187,13 +190,13 @@ class ChronoqueueClient:
         try:
             request = chronoqueue_pb2.DeleteQueueRequest(name=name)
             response = self.stub.DeleteQueue(request)
-            return response
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_delete_queue_response)
         except grpc.RpcError as e:
             logging.error(f"Error deleting queue: {e.details()}")
             error = RpcOperationError(f"Failed to delete queue due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
     
-    def post_message(self, msg_params: PostMessageParams, msg_options=PostMessageOptions(), error_handler=None) -> chronoqueue_pb2.PostMessageResponse:
+    def post_message(self, msg_params: PostMessageParams, msg_options=PostMessageOptions(), error_handler=None) -> ResponseWrapper:
         """
         Posts a new message to the Chronoqueue service.
 
@@ -244,14 +247,14 @@ class ChronoqueueClient:
         try:
             request = _create_post_message_request(params=msg_params, options=msg_options)
             response = self.stub.PostMessage(request)
-            return response
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_post_message_response)
         except grpc.RpcError as e:
             logging.error(f"Error posting message: {e.details()}")
             error = RpcOperationError(f"Failed to post message due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
         
 
-    def get_next_message(self, queue_name: str, lease_duration: int, error_handler=None) -> chronoqueue_pb2.GetNextMessageResponse:
+    def get_next_message(self, queue_name: str, lease_duration: int, error_handler=None) -> ResponseWrapper:
         """
         Retrieves the next message from the specified queue in the Chronoqueue service.
 
@@ -290,14 +293,14 @@ class ChronoqueueClient:
         try:
             request = chronoqueue_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=lease_duration)
             response = self.stub.GetNextMessage(request)
-            return response
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_get_next_message_response)
         except grpc.RpcError as e:
             logging.error(f"Error getting next message: {e.details()}")
             error = RpcOperationError(f"Failed to get next message due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
         
 
-    def acknowledge_message(self, params: AcknowledgeMessageParams, error_handler=None) -> chronoqueue_pb2.AcknowledgeMessageResponse:
+    def acknowledge_message(self, params: AcknowledgeMessageParams, error_handler=None) -> ResponseWrapper:
         """
         Acknowledges a message in the Chronoqueue service.
 
@@ -343,14 +346,14 @@ class ChronoqueueClient:
                 state=params.state
             )
             response = self.stub.AcknowledgeMessage(request)
-            return response
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_acknowledge_message_response)
         except grpc.RpcError as e:
             logging.error(f"Error acknowledging message: {e.details()}")
             error = RpcOperationError(f"Failed to acknowlege message due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
         
 
-    def renew_message_lease(self, message_id: str, new_lease_duration: int, error_handler=None) -> chronoqueue_pb2.RenewMessageLeaseResponse:
+    def renew_message_lease(self, message_id: str, new_lease_duration: int, error_handler=None) -> ResponseWrapper:
         """
         Renews the lease duration of a specified message in the Chronoqueue service.
 
@@ -391,14 +394,14 @@ class ChronoqueueClient:
         try:
             request = chronoqueue_pb2.RenewMessageLeaseRequest(message_id=message_id, lease_duration=new_lease_duration)
             response = self.stub.RenewMessageLease(request)
-            return response
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_renew_message_lease_response)
         except grpc.RpcError as e:
             logging.error(f"Error renewing message lease: {e.details()}")
             error = RpcOperationError(f"Failed to renew message lease due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
         
 
-    def peek_queue_messages(self, params: PeekQueueMessagesParams, error_handler=None) -> chronoqueue_pb2.PeekQueueMessagesResponse:
+    def peek_queue_messages(self, params: PeekQueueMessagesParams, error_handler=None) -> ResponseWrapper:
         """
         Peeks messages from a specified queue in the Chronoqueue service.
 
@@ -443,14 +446,14 @@ class ChronoqueueClient:
                 priority_range=params.priority_range
             )
             response = self.stub.PeekQueueMessages(request)
-            return response
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_peek_queue_messages_response)
         except grpc.RpcError as e:
             logging.error(f"Error peeking queue messages: {e.details()}")
             error = RpcOperationError(f"Failed to peek queue due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
         
 
-    def get_queue_state(self, queue_name, error_handler=None) -> chronoqueue_pb2.GetQueueStateResponse:
+    def get_queue_state(self, queue_name, error_handler=None) -> ResponseWrapper:
         """
         Retrieves the state of a specified queue in the Chronoqueue service.
 
@@ -487,7 +490,7 @@ class ChronoqueueClient:
         try:
             request = chronoqueue_pb2.GetQueueStateRequest(queue_name=queue_name)
             response = self.stub.GetQueueState(request)
-            return response
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_get_queue_state_response)
         except grpc.RpcError as e:
             logging.error(f"Error getting queue state: {e.details()}")
             error = RpcOperationError(f"Failed to get queue state due to: {e.details()}")
