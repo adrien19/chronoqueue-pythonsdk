@@ -1,8 +1,8 @@
-import json 
 from dataclasses import dataclass, field
 from typing import Optional, Dict
 from enum import Enum
 from .api.v1 import chronoqueue_pb2
+from .converters.type_converters import dict_to_protobuf_struct
 from google.protobuf.struct_pb2 import Struct, Value
 from google.protobuf.json_format import MessageToJson, ParseDict
 
@@ -198,7 +198,8 @@ def _create_post_message_request(params: PostMessageParams, options: PostMessage
     """
 
     # Convert Python dict to Struct
-    data_struct = ParseDict(params.data, Struct())
+    # data_struct = ParseDict(params.data, Struct())
+    data_struct = dict_to_protobuf_struct(params.data)
 
     # Convert Python dict to map<string, Value>
     metadata_map = {k: Value(string_value=v) for k, v in options.data_metadata.items()}
