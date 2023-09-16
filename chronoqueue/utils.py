@@ -3,7 +3,23 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict
 from enum import Enum
 from .api.v1 import chronoqueue_pb2
+from google.protobuf.struct_pb2 import Struct, Value
+from google.protobuf.json_format import MessageToJson, ParseDict
 
+
+@dataclass
+class TlsConfig:
+    """
+    TlsConfig represents the configuration required for setting up a secure TLS connection.
+    
+    Attributes:
+        ca_path (str): Path to the Certificate Authority (CA) certificate.
+        client_crt_path (str): Path to the client's certificate.
+        client_key_path (str): Path to the client's private key.
+    """
+    ca_path: str
+    client_crt_path: str
+    client_key_path: str
 
 class MessageState(Enum):
     """
@@ -181,12 +197,14 @@ def _create_post_message_request(params: PostMessageParams, options: PostMessage
         PostMessageRequest: The populated protobuf request object.
     """
 
-    # Convert the dictionary to a JSON string and then to bytes, 
-    # as the 'data' field in the Payload expects bytes.
-    data_bytes = json.dumps(params.data).encode('utf-8')
+    # Convert Python dict to Struct
+    data_struct = ParseDict(params.data, Struct())
+
+    # Convert Python dict to map<string, Value>
+    metadata_map = {k: Value(string_value=v) for k, v in options.data_metadata.items()}
 
     # Create the Payload message with the provided data and an empty metadata.
-    payload = chronoqueue_pb2.Payload(metadata=options.data_metadata, data=data_bytes)
+    payload = chronoqueue_pb2.Payload(metadata=metadata_map, data=data_struct)
 
     # Create the Message's Metadata using provided options or default values.
     metadata = chronoqueue_pb2.Message.Metadata(

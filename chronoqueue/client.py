@@ -1,7 +1,7 @@
 import grpc
 import logging
 from .exceptions import InitializationError, RpcOperationError
-from .utils import PostMessageParams, PostMessageOptions, \
+from .utils import TlsConfig, PostMessageParams, PostMessageOptions, \
     AcknowledgeMessageParams, PeekQueueMessagesParams, QueueOptions, _create_post_message_request
 from .api.v1 import chronoqueue_pb2_grpc, chronoqueue_pb2
 
@@ -21,11 +21,10 @@ class ChronoqueueClient:
 
     Attributes:
     ----------
-    host : str
-        The hostname or IP address of the Chronoqueue service.
-
-    port : int
-        The port on which the Chronoqueue service is listening.
+    host (str): The host address of the Chronoqueue service.
+    port (int): The port number of the Chronoqueue service.
+    use_tls (bool, optional): Flag to determine if TLS should be used. Defaults to True.
+    tls_config (TlsConfig, optional): The TLS configuration for secure connections.
 
     channel : grpc.Channel
         The gRPC channel used for communication with the Chronoqueue service.
@@ -48,7 +47,7 @@ class ChronoqueueClient:
 
     """
 
-    def __init__(self, host, port, use_tls=True, cert_path=None):
+    def __init__(self, host, port, use_tls=True, tls_config: TlsConfig = None):
         """
         Initializes the Chronoqueue SDK client.
 
@@ -57,19 +56,10 @@ class ChronoqueueClient:
 
         Parameters:
         ----------
-        host : str
-            The hostname or IP address of the Chronoqueue service.
-
-        port : int
-            The port on which the Chronoqueue service is listening.
-
-        use_tls : bool, optional (default=True)
-            Indicates whether to use a secure TLS connection. If set to True, the `cert_path` 
-            parameter must be provided.
-
-        cert_path : str, optional
-            Path to the certificate file required for establishing a secure TLS connection. 
-            This parameter is mandatory if `use_tls` is set to True.
+            host (str): The host address of the Chronoqueue service.
+            port (int): The port number of the Chronoqueue service.
+            use_tls (bool, optional): Flag to determine if TLS should be used. Defaults to True.
+            tls_config (TlsConfig, optional): The TLS configuration for secure connections.
 
         Raises:
         ------
@@ -89,9 +79,16 @@ class ChronoqueueClient:
         self.port = port
 
         if use_tls:
-            if cert_path is None:
-                raise InitializationError("cert_path must be provided if use_tls is True")
-            credentials = grpc.ssl_channel_credentials(open(cert_path, 'rb').read())
+            if tls_config is None:
+                raise InitializationError("TLS is enabled but no TlsConfig provided")
+            
+            with open(tls_config.ca_path, 'rb') as f:
+                ca = f.read()
+            with open(tls_config.client_crt_path, 'rb') as f:
+                client_crt = f.read()
+            with open(tls_config.client_key_path, 'rb') as f:
+                client_key = f.read()
+            credentials = grpc.ssl_channel_credentials(ca, client_key, client_crt)
             self.channel = grpc.secure_channel(f"{host}:{port}", credentials)
         else:
             self.channel = grpc.insecure_channel(f"{host}:{port}")
@@ -143,7 +140,8 @@ class ChronoqueueClient:
 
         """
         try:
-            queueInfo = chronoqueue_pb2.Queue(name=name, metadata=options)
+            queueOptions = chronoqueue_pb2.Queue.Options(type=options.type.value, dequeue_attempts=options.dequeue_attempts, lease_duration=options.lease_duration, exclusivity_key=options.exclusivity_key, invisibility_duration=options.invisibility_duration) if options is not None else chronoqueue_pb2.Queue.Options()
+            queueInfo = chronoqueue_pb2.Queue(name=name, metadata=queueOptions)
             request = chronoqueue_pb2.CreateQueueRequest(queue=queueInfo)
             response = self.stub.CreateQueue(request)
             return response
@@ -291,7 +289,7 @@ class ChronoqueueClient:
         """
         try:
             request = chronoqueue_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=lease_duration)
-            response = self.stub.GetNextMessage(request)
+            response:chronoqueue_pb2.GetNextMessageResponse = self.stub.GetNextMessage(request)
             return response
         except grpc.RpcError as e:
             logging.error(f"Error getting next message: {e.details()}")

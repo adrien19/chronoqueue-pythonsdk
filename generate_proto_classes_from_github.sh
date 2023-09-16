@@ -23,7 +23,7 @@ touch $OUTPUT_PATH/__init__.py
 python -m grpc_tools.protoc -I=$PROTO_PATH \
                  --python_out=$OUTPUT_PATH \
                  --grpc_python_out=$OUTPUT_PATH \
-                 --mypy_out=$OUTPUT_PATH \
+                #  --mypy_out=$OUTPUT_PATH \
                  $PROTO_PATH/chronoqueue.proto
 
 # Replace the import inside the grpc file
