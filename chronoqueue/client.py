@@ -102,7 +102,7 @@ class ChronoqueueClient:
             # Default behavior is to raise the error
             raise error
 
-    def create_queue(self, name: str, options: QueueOptions = None, error_handler=None):
+    def create_queue(self, name: str, options: QueueOptions = None, error_handler=None) -> chronoqueue_pb2.CreateQueueResponse:
         """
         Creates a new queue in the Chronoqueue service with the specified parameters.
 
@@ -150,7 +150,7 @@ class ChronoqueueClient:
             error = RpcOperationError(f"Failed to create queue due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
-    def delete_queue(self, name, error_handler=None):
+    def delete_queue(self, name, error_handler=None) -> chronoqueue_pb2.DeleteQueueResponse:
         """
         Deletes a specified queue from the Chronoqueue service.
 
@@ -193,7 +193,7 @@ class ChronoqueueClient:
             error = RpcOperationError(f"Failed to delete queue due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
     
-    def post_message(self, msg_params: PostMessageParams, msg_options=PostMessageOptions(), error_handler=None):
+    def post_message(self, msg_params: PostMessageParams, msg_options=PostMessageOptions(), error_handler=None) -> chronoqueue_pb2.PostMessageResponse:
         """
         Posts a new message to the Chronoqueue service.
 
@@ -251,7 +251,7 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def get_next_message(self, queue_name: str, lease_duration: int, error_handler=None):
+    def get_next_message(self, queue_name: str, lease_duration: int, error_handler=None) -> chronoqueue_pb2.GetNextMessageResponse:
         """
         Retrieves the next message from the specified queue in the Chronoqueue service.
 
@@ -289,7 +289,7 @@ class ChronoqueueClient:
         """
         try:
             request = chronoqueue_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=lease_duration)
-            response:chronoqueue_pb2.GetNextMessageResponse = self.stub.GetNextMessage(request)
+            response = self.stub.GetNextMessage(request)
             return response
         except grpc.RpcError as e:
             logging.error(f"Error getting next message: {e.details()}")
@@ -297,7 +297,7 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def acknowledge_message(self, params: AcknowledgeMessageParams, error_handler=None):
+    def acknowledge_message(self, params: AcknowledgeMessageParams, error_handler=None) -> chronoqueue_pb2.AcknowledgeMessageResponse:
         """
         Acknowledges a message in the Chronoqueue service.
 
@@ -350,7 +350,7 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def renew_message_lease(self, message_id: str, new_lease_duration: int, error_handler=None):
+    def renew_message_lease(self, message_id: str, new_lease_duration: int, error_handler=None) -> chronoqueue_pb2.RenewMessageLeaseResponse:
         """
         Renews the lease duration of a specified message in the Chronoqueue service.
 
@@ -398,7 +398,7 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def peek_queue_messages(self, params: PeekQueueMessagesParams, error_handler=None):
+    def peek_queue_messages(self, params: PeekQueueMessagesParams, error_handler=None) -> chronoqueue_pb2.PeekQueueMessagesResponse:
         """
         Peeks messages from a specified queue in the Chronoqueue service.
 
@@ -450,7 +450,7 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def get_queue_state(self, queue_name, error_handler=None):
+    def get_queue_state(self, queue_name, error_handler=None) -> chronoqueue_pb2.GetQueueStateResponse:
         """
         Retrieves the state of a specified queue in the Chronoqueue service.
 
@@ -495,7 +495,7 @@ class ChronoqueueClient:
 
 
 
-    def close(self, error_handler=None):
+    def close(self, error_handler=None) -> None:
         """
         Closes the gRPC channel used by the SDK to communicate with the Chronoqueue service.
 
@@ -529,7 +529,7 @@ class ChronoqueueClient:
         """
         try:
             if self.channel:
-                self.channel.close()
+                return self.channel.close()
         except grpc.RpcError as e:
             logging.error(f"Error closing rpc channel: {e.details()}")
             error = RpcOperationError(f"Failed to close RPC channel due to: {e.details()}")
