@@ -254,7 +254,7 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def get_next_message(self, queue_name: str, lease_duration: int, error_handler=None) -> ResponseWrapper:
+    def get_next_message(self, queue_name: str, lease_duration: int, exclusivity_key: str = "", error_handler=None) -> ResponseWrapper:
         """
         Retrieves the next message from the specified queue in the Chronoqueue service.
 
@@ -269,6 +269,8 @@ class ChronoqueueClient:
             The name of the queue from which the next message is to be fetched.
         lease_duration : int
             The number (in seconds) a message will be leased for.
+        exclusivity_key : str, optional
+            Require if the queue to query is of exclusive type.
 
         error_handler : callable, optional
             A custom error handling function that will be called if an error occurs during the operation.
@@ -277,8 +279,9 @@ class ChronoqueueClient:
 
         Returns:
         -------
-        response : GetNextMessageResponse
-            The response from the Chronoqueue service, containing details about the fetched message.
+        response : ResponseWrapper
+            The wrapper containing GetNextMessageResponse response from the Chronoqueue service, containing details about the fetched message.
+
 
         Raises:
         ------
@@ -287,11 +290,12 @@ class ChronoqueueClient:
 
         Example:
         --------
-        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300)
+        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300).to_dict() // For returning a dictionary response
+        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300).to_proto() // For returning grpc response
 
         """
         try:
-            request = chronoqueue_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=lease_duration)
+            request = chronoqueue_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=lease_duration, exclusivity_key=exclusivity_key)
             response = self.stub.GetNextMessage(request)
             return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_get_next_message_response)
         except grpc.RpcError as e:

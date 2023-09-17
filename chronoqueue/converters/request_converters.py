@@ -104,7 +104,7 @@ def get_next_message_request_to_protobuf(request: dict) -> chronoqueue_pb2.GetNe
     Returns:
     - chronoqueue_pb2.GetNextMessageRequest: Protobuf representation of GetNextMessageRequest.
     """
-    return chronoqueue_pb2.GetNextMessageRequest(queue_name=request.get('queue_name', ''), lease_duration=request.get('lease_duration', 0))
+    return chronoqueue_pb2.GetNextMessageRequest(queue_name=request.get('queue_name', ''), lease_duration=request.get('lease_duration', 0), exclusivity_key=request.get('exclusivity_key', ''))
 
 def protobuf_to_get_next_message_request(request_protobuf: chronoqueue_pb2.GetNextMessageRequest) -> dict:
     """
@@ -118,7 +118,8 @@ def protobuf_to_get_next_message_request(request_protobuf: chronoqueue_pb2.GetNe
     """
     return {
         'queue_name': request_protobuf.queue_name,
-        'lease_duration': request_protobuf.lease_duration
+        'lease_duration': request_protobuf.lease_duration,
+        'exclusivity_key': request_protobuf.exclusivity_key
     }
 
 # --- AcknowledgeMessageRequest Conversion ---
