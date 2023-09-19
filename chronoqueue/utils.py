@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 from enum import Enum
 from .api.v1 import chronoqueue_pb2
 from .converters.type_converters import dict_to_protobuf_struct
@@ -236,23 +236,38 @@ class ResponseWrapper:
     A wrapper for gRPC protobuf responses that provides utility methods for converting
     the response to other formats, such as a dictionary, and for accessing the raw protobuf response.
 
+    The ResponseWrapper acts as a bridge between the raw gRPC protobuf response and a more
+    user-friendly dictionary format. The provided converter function will be used to transform
+    the protobuf response into a dictionary when needed.
+
+    Additionally, the ResponseWrapper contains fields like `remaining_lease_time` and `stop_event`
+    which can be used in the context of certain operations, such as message leasing and heartbeats.
+
+    Args:
+        response_protobuf: The gRPC protobuf response object.
+            This is the raw response received from the gRPC service.
+        converter_func: A callable that converts the protobuf response to a dictionary.
+            This function should accept a single argument (the protobuf response) and return a dictionary.
+
     Attributes:
-        _response_protobuf: The raw gRPC protobuf response object.
-        _converter_func: A function that converts the protobuf response to a dictionary.
+        remaining_lease_time (float, optional): The remaining time (in seconds) for a leased message.
+            This can be used in conjunction with heartbeats to determine when to renew a message's lease.
+            By default, this is set to None, indicating it's not used.
+        stop_event (threading.Event, optional): An event that can be set to signal operations (like heartbeats)
+            to stop. By default, this is set to None.
+
     """
 
     def __init__(self, response_protobuf, converter_func):
         """
         Initializes the ResponseWrapper with the provided protobuf response and converter function.
-
-        Args:
-            response_protobuf: The gRPC protobuf response object.
-            converter_func: A function that converts the protobuf response to a dictionary.
         """
         self._response_protobuf = response_protobuf
         self._converter_func = converter_func
+        self.remaining_lease_time = None
+        self.stop_event = None
 
-    def to_dict(self):
+    def to_dict(self) -> Dict:
         """
         Converts the wrapped protobuf response to a dictionary using the provided converter function.
 
@@ -261,7 +276,7 @@ class ResponseWrapper:
         """
         return self._converter_func(response_protobuf=self._response_protobuf)
 
-    def to_proto(self):
+    def to_proto(self) -> Any:
         """
         Retrieves the raw gRPC protobuf response.
 
@@ -282,3 +297,14 @@ class ResponseWrapper:
             The value of the specified attribute in the wrapped protobuf response.
         """
         return getattr(self._response_protobuf, name)
+    
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if hasattr(self, "stop_event") and self.stop_event is not None and not self.stop_event.is_set():
+            self.stop_event.set()
+    
+    def __del__(self):
+        if hasattr(self, "stop_event") and self.stop_event is not None and not self.stop_event.is_set():
+            self.stop_event.set()

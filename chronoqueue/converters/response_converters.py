@@ -1,5 +1,5 @@
 from chronoqueue.api.v1 import chronoqueue_pb2
-from .type_converters import protobuf_to_message
+from .type_converters import protobuf_to_message, is_empty_proto_message
 
 # --- CreateQueueResponse Conversion ---
 
@@ -55,10 +55,13 @@ def protobuf_to_get_next_message_response(response_protobuf: chronoqueue_pb2.Get
     Returns:
     - dict: Dictionary representation of GetNextMessageResponse.
     """
-    message = protobuf_to_message(response_protobuf.message)
-    return {
-        'message': message
-    }
+    if is_empty_proto_message(message=response_protobuf):
+        return {}
+    return protobuf_to_message(response_protobuf.message)
+    # message = protobuf_to_message(response_protobuf.message)
+    # return {
+    #     'message': message
+    # }
 
 # --- AcknowledgeMessageResponse Conversion ---
 
@@ -86,6 +89,8 @@ def protobuf_to_peek_queue_messages_response(response_protobuf: chronoqueue_pb2.
     Returns:
     - dict: Dictionary representation of PeekQueueMessagesResponse containing a list of Message representations.
     """
+    if is_empty_proto_message(message=response_protobuf):
+        return {}
     return {
         'messages': [protobuf_to_message(message_protobuf) for message_protobuf in response_protobuf.messages]
     }
@@ -117,6 +122,8 @@ def protobuf_to_get_queue_state_response(response_protobuf: chronoqueue_pb2.GetQ
     Returns:
     - dict: Dictionary representation of GetQueueStateResponse.
     """
+    if is_empty_proto_message(message=response_protobuf):
+        return {}
     return {
         'invisible_messages_count': response_protobuf.invisible_messages_count,
         'pending_messages_count': response_protobuf.pending_messages_count,
@@ -126,4 +133,23 @@ def protobuf_to_get_queue_state_response(response_protobuf: chronoqueue_pb2.GetQ
         'errored_messages_count': response_protobuf.errored_messages_count,
         'earliest_deadline': response_protobuf.earliest_deadline.ToDatetime()
     }
+
+# --- SendMessageHeartBeatResponse Conversion ---
+
+def protobuf_to_send_message_heartbeat_response(response_protobuf: chronoqueue_pb2.SendMessageHeartBeatResponse) -> dict:
+    """
+    Convert a protobuf representation of SendMessageHeartBeatResponse to its dictionary counterpart.
+
+    Args:
+    - response_protobuf (chronoqueue_pb2.SendMessageHeartBeatResponse): Protobuf representation of SendMessageHeartBeatResponse.
+
+    Returns:
+    - dict: Dictionary representation of SendMessageHeartBeatResponse.
+    """
+    if is_empty_proto_message(message=response_protobuf):
+        return {}
+    return {
+        'remaining_time': response_protobuf.remaining_time
+    }
+
 

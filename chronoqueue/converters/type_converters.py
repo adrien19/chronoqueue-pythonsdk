@@ -4,6 +4,32 @@ from chronoqueue.api.v1 import chronoqueue_pb2
 from google.protobuf.json_format import MessageToDict
 
 
+def is_empty_proto_message(message):
+    if message.ByteSize() == 0:
+        return True
+    
+    for field in message.DESCRIPTOR.fields:
+        value = getattr(message, field.name)
+        
+        # If the field is a map field, check if it's empty
+        if field.type == field.TYPE_MESSAGE and field.message_type.has_options and field.message_type.GetOptions().map_entry:
+            if value:
+                return False
+        # If the field is another message type (and not an enum), check it recursively
+        elif field.message_type and not field.enum_type:
+            if not is_empty_proto_message(value):
+                return False
+        # If the field is a repeated field, check if it has any values
+        elif field.label == field.LABEL_REPEATED:
+            if value:
+                return False
+        # For scalar fields, check against default value
+        else:
+            if value not in (field.default_value, None):  # for proto3, fields have default values
+                return False
+    return True
+
+
 # --- Struct <-> Dictionary Conversion ---
 
 def dict_to_protobuf_struct(data_dict: Dict) -> Struct:
@@ -12,6 +38,8 @@ def dict_to_protobuf_struct(data_dict: Dict) -> Struct:
     return struct
 
 def protobuf_struct_to_dict(struct: Struct) -> Dict:
+    if is_empty_proto_message(struct):
+        return {}
     return MessageToDict(struct)
 
 # --- Payload Conversion ---
@@ -40,6 +68,8 @@ def message_to_protobuf(message: Dict) -> chronoqueue_pb2.Message:
     )
 
 def protobuf_to_message(message_protobuf: chronoqueue_pb2.Message) -> Dict:
+    if is_empty_proto_message(message=message_protobuf):
+        return {}
     metadata = protobuf_to_message_metadata(message_protobuf.metadata)
     return {
         'message_id': message_protobuf.message_id,
@@ -62,6 +92,8 @@ def message_metadata_to_protobuf(metadata: Dict) -> chronoqueue_pb2.Message.Meta
     )
 
 def protobuf_to_message_metadata(metadata_protobuf: chronoqueue_pb2.Message.Metadata) -> Dict:
+    if is_empty_proto_message(metadata_protobuf):
+        return {}
     payload = protobuf_to_payload(metadata_protobuf.payload)
     state = chronoqueue_pb2.Message.Metadata.State.Name(metadata_protobuf.state)
     return {
@@ -83,6 +115,8 @@ def queue_to_protobuf(queue: Dict) -> chronoqueue_pb2.Queue:
     )
 
 def protobuf_to_queue(queue_protobuf: chronoqueue_pb2.Queue) -> Dict:
+    if is_empty_proto_message(queue_protobuf):
+        return {}
     metadata = protobuf_to_queue_metadata(queue_protobuf.metadata)
     return {
         'name': queue_protobuf.name,
@@ -102,6 +136,8 @@ def queue_metadata_to_protobuf(metadata: Dict) -> chronoqueue_pb2.Queue.Options:
     )
 
 def protobuf_to_queue_metadata(metadata_protobuf: chronoqueue_pb2.Queue.Options) -> Dict:
+    if is_empty_proto_message(metadata_protobuf):
+        return {}
     type_ = chronoqueue_pb2.Queue.Options.Type.Name(metadata_protobuf.type)
     return {
         'type': type_,

@@ -262,3 +262,36 @@ def protobuf_to_get_queue_state_request(request_protobuf: chronoqueue_pb2.GetQue
         'queue_name': request_protobuf.queue_name
     }
 
+
+# --- SendMessageHeartBeatRequest Conversion ---
+
+def send_message_heartbeat_request_to_protobuf(request: dict) -> chronoqueue_pb2.SendMessageHeartBeatRequest:
+    """
+    Convert a dictionary representation of SendMessageHeartBeatRequest to its protobuf counterpart.
+
+    Args:
+    - request (dict): Dictionary containing fields for SendMessageHeartBeatRequest.
+
+    Returns:
+    - chronoqueue_pb2.SendMessageHeartBeatRequest: Protobuf representation of SendMessageHeartBeatRequest.
+    """
+    return chronoqueue_pb2.SendMessageHeartBeatRequest(
+        queue_name=request.get('queue_name', ''),
+        message_id=request.get('message_id', '')
+    )
+
+def protobuf_to_send_message_heartbeat_request(request_protobuf: chronoqueue_pb2.SendMessageHeartBeatRequest) -> dict:
+    """
+    Convert a protobuf representation of SendMessageHeartBeatRequest to its dictionary counterpart.
+
+    Args:
+    - request_protobuf (chronoqueue_pb2.SendMessageHeartBeatRequest): Protobuf representation of SendMessageHeartBeatRequest.
+
+    Returns:
+    - dict: Dictionary representation of SendMessageHeartBeatRequest.
+    """
+    return {
+        'queue_name': request_protobuf.queue_name,
+        'message_id': request_protobuf.message_id
+    }
+

@@ -54,6 +54,11 @@ class ChronoQueueStub(object):
                 request_serializer=chronoqueue__pb2.GetQueueStateRequest.SerializeToString,
                 response_deserializer=chronoqueue__pb2.GetQueueStateResponse.FromString,
                 )
+        self.SendMessageHeartBeat = channel.unary_unary(
+                '/chronoqueue.api.chronoqueue.v1.ChronoQueue/SendMessageHeartBeat',
+                request_serializer=chronoqueue__pb2.SendMessageHeartBeatRequest.SerializeToString,
+                response_deserializer=chronoqueue__pb2.SendMessageHeartBeatResponse.FromString,
+                )
 
 
 class ChronoQueueServicer(object):
@@ -107,6 +112,12 @@ class ChronoQueueServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SendMessageHeartBeat(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChronoQueueServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -149,6 +160,11 @@ def add_ChronoQueueServicer_to_server(servicer, server):
                     servicer.GetQueueState,
                     request_deserializer=chronoqueue__pb2.GetQueueStateRequest.FromString,
                     response_serializer=chronoqueue__pb2.GetQueueStateResponse.SerializeToString,
+            ),
+            'SendMessageHeartBeat': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendMessageHeartBeat,
+                    request_deserializer=chronoqueue__pb2.SendMessageHeartBeatRequest.FromString,
+                    response_serializer=chronoqueue__pb2.SendMessageHeartBeatResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -293,5 +309,22 @@ class ChronoQueue(object):
         return grpc.experimental.unary_unary(request, target, '/chronoqueue.api.chronoqueue.v1.ChronoQueue/GetQueueState',
             chronoqueue__pb2.GetQueueStateRequest.SerializeToString,
             chronoqueue__pb2.GetQueueStateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def SendMessageHeartBeat(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/chronoqueue.api.chronoqueue.v1.ChronoQueue/SendMessageHeartBeat',
+            chronoqueue__pb2.SendMessageHeartBeatRequest.SerializeToString,
+            chronoqueue__pb2.SendMessageHeartBeatResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

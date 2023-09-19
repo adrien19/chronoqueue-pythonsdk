@@ -1,5 +1,9 @@
 import grpc
 import logging
+import threading
+import asyncio
+import time
+import os
 from .exceptions import InitializationError, RpcOperationError
 from .utils import TlsConfig, PostMessageParams, PostMessageOptions, \
     AcknowledgeMessageParams, PeekQueueMessagesParams, QueueOptions, _create_post_message_request, \
@@ -85,6 +89,11 @@ class ChronoqueueClient:
             if tls_config is None:
                 raise InitializationError("TLS is enabled but no TlsConfig provided")
             
+            # Check for the existence of the files before trying to read them.
+            for path in [tls_config.ca_path, tls_config.client_crt_path, tls_config.client_key_path]:
+                if not os.path.exists(path):
+                    raise InitializationError(f"File {path} does not exist.")
+
             with open(tls_config.ca_path, 'rb') as f:
                 ca = f.read()
             with open(tls_config.client_crt_path, 'rb') as f:
@@ -104,6 +113,34 @@ class ChronoqueueClient:
         else:
             # Default behavior is to raise the error
             raise error
+
+    async def _lease_monitor(self, message_id, lease_duration, threshold, response_wrapper: ResponseWrapper):
+        """Internal method to monitor the lease and renew it if needed."""
+        while not response_wrapper.stop_event.is_set():
+            if response_wrapper.remaining_lease_time is not None and \
+                response_wrapper.remaining_lease_time < lease_duration * threshold:
+                response = self.renew_message_lease(message_id, lease_duration).to_dict()
+                logging.info(f" ===== IN LEASE MONITOR response : {response} ========")
+            await asyncio.sleep(1)  # Check every second, but this can be adjusted
+    
+    def _heartbeat_worker(self, queue_name, message_id, frequency, stop_event, response_wrapper: ResponseWrapper):
+        """Sends heartbeats periodically until stopped and updates the remaining lease time."""
+        while not stop_event.is_set():
+            try:
+                logging.info(f" ===== IN HEARTBEAT WORKER message_id : {message_id} ========")
+                response = self.send_message_heartbeat(queue_name=queue_name, message_id=message_id)
+                response_wrapper.remaining_lease_time = response.to_dict().get("remaining_time", None)
+                time.sleep(frequency)
+            except Exception as e:
+                logging.error(f"Error sending heartbeat for message {message_id}: {e}")
+
+    def start_heartbeat(self, queue_name, message_id, frequency, response_wrapper):
+        """Starts sending heartbeats for a message and updates the ResponseWrapper with remaining lease time."""
+        stop_event = threading.Event()
+        heartbeat_thread = threading.Thread(target=self._heartbeat_worker, args=(queue_name, message_id, frequency, stop_event, response_wrapper))
+        heartbeat_thread.start()
+        logging.info(f" ===== IN START_HEARTBEAR message_id : {message_id} ========")
+        return stop_event
 
     def create_queue(self, name: str, options: QueueOptions = None, error_handler=None) -> ResponseWrapper:
         """
@@ -254,7 +291,7 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def get_next_message(self, queue_name: str, lease_duration: int, exclusivity_key: str = "", error_handler=None) -> ResponseWrapper:
+    def get_next_message(self, queue_name: str, lease_duration: int, exclusivity_key: str = "", heartbeat_frequency=None, renew_lease_threshold=None, error_handler=None) -> ResponseWrapper:
         """
         Retrieves the next message from the specified queue in the Chronoqueue service.
 
@@ -263,6 +300,10 @@ class ChronoqueueClient:
         If an error occurs during the message retrieval, it can be handled using a custom error handler 
         or the SDK's default mechanism.
 
+        Optionally, for messages that support lease renewals, the method can automatically send 
+        heartbeats to the service to renew the lease on the message. This can be controlled using 
+        the `heartbeat_frequency` and `renew_lease_threshold` parameters.
+
         Parameters:
         ----------
         queue_name : str
@@ -270,8 +311,13 @@ class ChronoqueueClient:
         lease_duration : int
             The number (in seconds) a message will be leased for.
         exclusivity_key : str, optional
-            Require if the queue to query is of exclusive type.
-
+            Required if the queue to query is of exclusive type.
+        heartbeat_frequency : float, optional
+            The frequency (in seconds) at which the SDK should send heartbeats to renew the message lease.
+            If not provided, defaults to one-third of the `lease_duration`.
+        renew_lease_threshold : float, optional
+            A threshold value in the range (0, 1) that determines when to start renewing the message lease.
+            For example, a threshold of 0.5 means the SDK will start sending heartbeats when half of the lease duration has passed.
         error_handler : callable, optional
             A custom error handling function that will be called if an error occurs during the operation.
             The function should accept a single argument, which is the error/exception object.
@@ -282,22 +328,41 @@ class ChronoqueueClient:
         response : ResponseWrapper
             The wrapper containing GetNextMessageResponse response from the Chronoqueue service, containing details about the fetched message.
 
-
         Raises:
         ------
         RpcOperationError:
             If there's an error performing the gRPC operation and no custom error handler is provided.
+        ValueError:
+            If the provided `renew_lease_threshold` is not in the range (0, 1).
 
         Example:
         --------
-        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300).to_dict() // For returning a dictionary response
-        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300).to_proto() // For returning grpc response
+        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300).to_dict() # For returning a dictionary response
+        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300).to_proto() # For returning grpc response
 
         """
         try:
+            # Validate renew_lease_threshold to be in the range (0, 1)
+            if renew_lease_threshold is not None and (renew_lease_threshold <= 0 or renew_lease_threshold >= 1):
+                raise ValueError("`renew_lease_threshold` should be in the range (0, 1)")
+            
             request = chronoqueue_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=lease_duration, exclusivity_key=exclusivity_key)
             response = self.stub.GetNextMessage(request)
-            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_get_next_message_response)
+            response_wrapper = ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_get_next_message_response)
+            if len(response_wrapper.to_dict()) != 0 and renew_lease_threshold is not None:  # If a message was fetched and renew_lease_threshold is provided
+                message_id = response_wrapper.to_dict().get("message_id")
+                frequency = heartbeat_frequency if heartbeat_frequency else lease_duration / 3  # 1/3 of lease duration as heartbeat default frequency
+                stop_event = self.start_heartbeat(queue_name=queue_name, message_id=message_id, frequency=frequency, response_wrapper=response_wrapper)
+                response_wrapper.stop_event = stop_event
+                if response_wrapper.stop_event is not None:
+                    # start the lease monitor
+                    asyncio.create_task(self._lease_monitor(
+                        message_id=message_id, 
+                        lease_duration=lease_duration, 
+                        threshold=renew_lease_threshold, 
+                        response_wrapper=response_wrapper)
+                    )
+            return response_wrapper
         except grpc.RpcError as e:
             logging.error(f"Error getting next message: {e.details()}")
             error = RpcOperationError(f"Failed to get next message due to: {e.details()}")
@@ -500,6 +565,43 @@ class ChronoqueueClient:
             error = RpcOperationError(f"Failed to get queue state due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
+    def send_message_heartbeat(self, queue_name, message_id, error_handler=None) -> ResponseWrapper:
+        """
+        Sends a heartbeat for the specified message to the Chronoqueue service.
+
+        Parameters:
+        ----------
+        queue_name : str
+            The unique name of the queue for which the message is stored.
+        message_id : str
+            The unique identifier of the message for which the heartbeat is being sent.
+        frequency : int, optional
+            The interval in which a heartbeat must be sent.
+
+        error_handler : callable, optional
+            A custom error handling function that will be called if an error occurs during the operation.
+            The function should accept a single argument, which is the error/exception object.
+            If not provided, the SDK's default error handling mechanism will be used.
+
+        Returns:
+        -------
+        response : ResponseWrapper
+            The wrapper containing SendMessageHeartBeatResponse response from the Chronoqueue service.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If there's an error performing the gRPC operation and no custom error handler is provided.
+        """
+        try:
+            request = chronoqueue_pb2.SendMessageHeartBeatRequest(queue_name=queue_name, message_id=message_id)
+            response = self.stub.SendMessageHeartBeat(request)
+            return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_send_message_heartbeat_response)
+        except grpc.RpcError as e:
+            logging.error(f"Error sending heartbeat for message {message_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to send heartbeat due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
 
 
     def close(self, error_handler=None) -> None:
@@ -535,7 +637,7 @@ class ChronoqueueClient:
 
         """
         try:
-            if self.channel:
+            if self.channel and self.channel._channel.check_connectivity_state(True) != grpc.ChannelConnectivity.SHUTDOWN:
                 return self.channel.close()
         except grpc.RpcError as e:
             logging.error(f"Error closing rpc channel: {e.details()}")
