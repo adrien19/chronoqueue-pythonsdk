@@ -1,5 +1,8 @@
 from chronoqueue.api.v1 import chronoqueue_pb2
-from .type_converters import queue_to_protobuf, protobuf_to_queue, message_to_protobuf, protobuf_to_message
+from google.protobuf.duration_pb2 import Duration
+from .type_converters import queue_to_protobuf, \
+    protobuf_to_queue, message_to_protobuf, protobuf_to_message, \
+    duration_to_dict
 
 
 # --- CreateQueueRequest Conversion ---
@@ -104,7 +107,7 @@ def get_next_message_request_to_protobuf(request: dict) -> chronoqueue_pb2.GetNe
     Returns:
     - chronoqueue_pb2.GetNextMessageRequest: Protobuf representation of GetNextMessageRequest.
     """
-    return chronoqueue_pb2.GetNextMessageRequest(queue_name=request.get('queue_name', ''), lease_duration=request.get('lease_duration', 0), exclusivity_key=request.get('exclusivity_key', ''))
+    return chronoqueue_pb2.GetNextMessageRequest(queue_name=request.get('queue_name', ''), lease_duration=request.get('lease_duration', Duration()), exclusivity_key=request.get('exclusivity_key', ''))
 
 def protobuf_to_get_next_message_request(request_protobuf: chronoqueue_pb2.GetNextMessageRequest) -> dict:
     """
@@ -116,9 +119,10 @@ def protobuf_to_get_next_message_request(request_protobuf: chronoqueue_pb2.GetNe
     Returns:
     - dict: Dictionary representation of GetNextMessageRequest.
     """
+    lease_duration = duration_to_dict(request_protobuf.lease_duration)
     return {
         'queue_name': request_protobuf.queue_name,
-        'lease_duration': request_protobuf.lease_duration,
+        'lease_duration': lease_duration,
         'exclusivity_key': request_protobuf.exclusivity_key
     }
 
@@ -213,7 +217,7 @@ def renew_message_lease_request_to_protobuf(request: dict) -> chronoqueue_pb2.Re
     return chronoqueue_pb2.RenewMessageLeaseRequest(
         queue_name=request.get('queue_name', ''),
         message_id=request.get('message_id', ''),
-        lease_duration=request.get('lease_duration', 0)
+        lease_duration=request.get('lease_duration', Duration())
     )
 
 def protobuf_to_renew_message_lease_request(request_protobuf: chronoqueue_pb2.RenewMessageLeaseRequest) -> dict:
@@ -226,10 +230,12 @@ def protobuf_to_renew_message_lease_request(request_protobuf: chronoqueue_pb2.Re
     Returns:
     - dict: Dictionary representation of RenewMessageLeaseRequest.
     """
+    lease_duration = duration_to_dict(request_protobuf.lease_duration)
+
     return {
         'queue_name': request_protobuf.queue_name,
         'message_id': request_protobuf.message_id,
-        'lease_duration': request_protobuf.lease_duration
+        'lease_duration': lease_duration
     }
 
 # --- GetQueueStateRequest Conversion ---

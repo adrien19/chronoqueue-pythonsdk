@@ -1,5 +1,6 @@
 from chronoqueue.api.v1 import chronoqueue_pb2
-from .type_converters import protobuf_to_message, is_empty_proto_message
+from .type_converters import protobuf_to_message, is_empty_proto_message, \
+    duration_to_dict
 
 # --- CreateQueueResponse Conversion ---
 
@@ -146,10 +147,11 @@ def protobuf_to_send_message_heartbeat_response(response_protobuf: chronoqueue_p
     Returns:
     - dict: Dictionary representation of SendMessageHeartBeatResponse.
     """
-    if is_empty_proto_message(message=response_protobuf):
-        return {}
+    remaining_time = duration_to_dict(response_protobuf.remaining_time)
+    state = chronoqueue_pb2.Message.Metadata.State.Name(response_protobuf.state)
     return {
-        'remaining_time': response_protobuf.remaining_time
+        'remaining_time': remaining_time,
+        'state': state,
     }
 
 

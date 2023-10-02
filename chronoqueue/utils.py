@@ -1,10 +1,11 @@
+import re
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 from enum import Enum
 from .api.v1 import chronoqueue_pb2
 from .converters.type_converters import dict_to_protobuf_struct
-from google.protobuf.struct_pb2 import Struct, Value
-from google.protobuf.json_format import MessageToJson, ParseDict
+from google.protobuf.struct_pb2 import Value
+from .converters.type_converters import string_to_duration
 
 
 @dataclass
@@ -47,6 +48,44 @@ class MessageState(Enum):
     CANCELED = chronoqueue_pb2.Message.Metadata.State.CANCELED
     ERRORED = chronoqueue_pb2.Message.Metadata.State.ERRORED
 
+
+@dataclass
+class PostMessageOptions:
+    """
+    Optional settings for posting a message to a Chronoqueue.
+
+    Attributes:
+    ----------
+    priority : int, optional (default=0)
+        Priority level of the message.
+    state : MessageState, optional (default=INVISIBLE)
+        Initial state of the message.
+    lease_duration : str, optional (default="0s")
+        Duration for which the message should be processed for by a worker. Must be in format "[number]unit", 
+        for example: "5s", "2m", "3.5m", or "3d".
+    invisibility_duration : str, optional (default="0s")
+        Duration for which the message should remain invisible. Must be in format "[number]unit", 
+        for example: "5s", "2m", "3.5m", or "3d".
+    attempts_left : int, optional (default=3)
+        Number of processing attempts left for the message.
+    data_metadata : Dict, optional
+        Metadata associated with the message's payload.
+    """
+    priority: int = 0
+    state: MessageState = chronoqueue_pb2.Message.Metadata.State.INVISIBLE
+    lease_duration: str = "0s"
+    invisibility_duration: str = "0s"
+    attempts_left: int = 3
+    data_metadata: Dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        duration_pattern = re.compile(r"^\d+(\.\d+)?[smhd]$")
+        if self.lease_duration and not duration_pattern.match(self.lease_duration):
+            raise ValueError("lease_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
+        if not duration_pattern.match(self.invisibility_duration):
+            raise ValueError("invisibility_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
+
+
 @dataclass
 class PostMessageParams:
     """
@@ -60,34 +99,14 @@ class PostMessageParams:
         Payload data for the message.
     queue_name : str, optional (default="default_queue")
         Name of the queue to post the message to.
+    options : PostMessageOptions, optional
+        Optional settings for posting a message. If not provided, defaults will be used.
     """
     message_id: str
     data: dict
-    queue_name: str = "default_queue"
+    queue_name: str 
+    options: Optional[PostMessageOptions] = field(default_factory=PostMessageOptions)
 
-@dataclass
-class PostMessageOptions:
-    """
-    Optional settings for posting a message to a Chronoqueue.
-
-    Attributes:
-    ----------
-    priority : int, optional (default=0)
-        Priority level of the message.
-    state : MessageState, optional (default=INVISIBLE)
-        Initial state of the message.
-    invisibility_duration : int, optional (default=0)
-        Duration (in seconds) for which the message should remain invisible.
-    attempts_left : int, optional (default=3)
-        Number of processing attempts left for the message.
-    data_metadata : Dict, optional
-        Metadata associated with the message's payload.
-    """
-    priority: int = 0
-    state: MessageState = chronoqueue_pb2.Message.Metadata.State.INVISIBLE
-    invisibility_duration: int = 0
-    attempts_left: int = 3
-    data_metadata: Dict = field(default_factory=dict)
 
 @dataclass
 class AcknowledgeMessageParams:
@@ -137,9 +156,10 @@ class PeekQueueMessagesParams:
     priority : MessagePriority, optional
         Priority range for filtering the messages.
     """
-    priority_range: Optional[MessagePriorityRange]
-    queue_name: str = "default_queue"
+    queue_name: str
     limit: int = 5
+    priority_range: Optional[MessagePriorityRange] = field(default_factory=MessagePriorityRange)
+
 
 class QueueType(Enum):
     """
@@ -163,29 +183,38 @@ class QueueOptions:
 
     Attributes:
     ----------
-    type : QueueType
+    type : QueueType, default[SIMPLE]
         The type of queue to be created. It can be SIMPLE or EXCLUSIVE.
 
-    exclusivity_key : str
+    exclusivity_key : Optional[str]
         The key used to ensure message exclusivity in the queue.
 
     dequeue_attempts : Optional[int]
         The number of times a message can be dequeued before it is considered failed.
 
-    lease_duration : Optional[int]
-        The duration (in seconds) a message remains leased after being dequeued.
+    lease_duration : Optional[str]
+        The duration a message remains leased after being dequeued. Must be in format "[number]unit", 
+        for example: "5s", "2m", "3.5m", or "3d".
 
-    invisibility_duration : Optional[int]
-        The duration (in seconds) a message remains invisible in the queue before being dequeued.
+    invisibility_duration : Optional[str]
+        The duration a message remains invisible in the queue before being dequeued. Must be in format "[number]unit",
+        for example: "5s", "2m", "3.5m", or "3d".
     """
-    type: QueueType
-    exclusivity_key: str
     dequeue_attempts: Optional[int]
-    lease_duration: Optional[int]
-    invisibility_duration: Optional[int]
+    lease_duration: Optional[str] 
+    invisibility_duration: Optional[str]
+    type: QueueType = QueueType.SIMPLE
+    exclusivity_key: Optional[str] = ""
+
+    def __post_init__(self):
+        duration_pattern = re.compile(r"^\d+(\.\d+)?[smhd]$")
+        if self.lease_duration and not duration_pattern.match(self.lease_duration):
+            raise ValueError("lease_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
+        if self.invisibility_duration and not duration_pattern.match(self.invisibility_duration):
+            raise ValueError("invisibility_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
 
 
-def _create_post_message_request(params: PostMessageParams, options: PostMessageOptions) -> chronoqueue_pb2.PostMessageRequest:
+def _create_post_message_request(params: PostMessageParams) -> chronoqueue_pb2.PostMessageRequest:
     """
     Creates a PostMessageRequest object given options.
 
@@ -202,7 +231,7 @@ def _create_post_message_request(params: PostMessageParams, options: PostMessage
     data_struct = dict_to_protobuf_struct(params.data)
 
     # Convert Python dict to map<string, Value>
-    metadata_map = {k: Value(string_value=v) for k, v in options.data_metadata.items()}
+    metadata_map = {k: Value(string_value=v) for k, v in params.options.data_metadata.items()}
 
     # Create the Payload message with the provided data and an empty metadata.
     payload = chronoqueue_pb2.Payload(metadata=metadata_map, data=data_struct)
@@ -210,15 +239,16 @@ def _create_post_message_request(params: PostMessageParams, options: PostMessage
     # Create the Message's Metadata using provided options or default values.
     metadata = chronoqueue_pb2.Message.Metadata(
         payload=payload,
-        state=options.state,
-        invisibility_duration=options.invisibility_duration,
-        attempts_left=options.attempts_left,
+        state=params.options.state,
+        lease_duration=string_to_duration(params.options.lease_duration),
+        invisibility_duration=string_to_duration(params.options.invisibility_duration),
+        attempts_left=params.options.attempts_left,
     )
 
     # Create the main Message using provided message_id, options or default values.
     message = chronoqueue_pb2.Message(
         message_id=params.message_id,
-        priority=options.priority,
+        priority=params.options.priority,
         metadata=metadata
     )
 
@@ -264,8 +294,6 @@ class ResponseWrapper:
         """
         self._response_protobuf = response_protobuf
         self._converter_func = converter_func
-        self.remaining_lease_time = None
-        self.stop_event = None
 
     def to_dict(self) -> Dict:
         """
@@ -297,14 +325,3 @@ class ResponseWrapper:
             The value of the specified attribute in the wrapped protobuf response.
         """
         return getattr(self._response_protobuf, name)
-    
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if hasattr(self, "stop_event") and self.stop_event is not None and not self.stop_event.is_set():
-            self.stop_event.set()
-    
-    def __del__(self):
-        if hasattr(self, "stop_event") and self.stop_event is not None and not self.stop_event.is_set():
-            self.stop_event.set()
