@@ -18,33 +18,36 @@ logging.basicConfig(level=logging.INFO)
 
 class ChronoqueueClient:
     """
-    Client for interacting with the Chronoqueue service using gRPC.
+    A client for interacting with the Chronoqueue distributed task queue via gRPC.
 
-    The `ChronoqueueClient` provides an interface to interact with the Chronoqueue service. It wraps 
-    the gRPC methods and offers additional functionality and error handling to simplify the interaction 
-    with the service.
+    Chronoqueue is a distributed task queue that facilitates the sending, processing, 
+    and acknowledgment of messages across distributed systems. `ChronoqueueClient` serves 
+    as the Python SDK to interact with Chronoqueue, offering an API to perform various 
+    operations such as enqueueing messages, processing them, and maintaining their state.
 
-    This client supports various operations, such as creating and deleting queues, posting messages to 
-    queues, retrieving messages from queues, and managing message leases, among others.
+    The client connects to a Chronoqueue service instance, enabling to perform 
+    operations on the queue programmatically, ensuring robust communication and error handling 
+    to facilitate interactions with the service.
 
     Attributes:
     ----------
-    host (str): The host address of the Chronoqueue service.
-    port (int): The port number of the Chronoqueue service.
-    use_tls (bool, optional): Flag to determine if TLS should be used. Defaults to True.
-    tls_config (TlsConfig, optional): The TLS configuration for secure connections.
-
+    host : str
+        The hostname or IP address of the Chronoqueue service to connect to.
+    port : int
+        The port number on which the Chronoqueue service is listening.
+    use_tls : bool, optional
+        A flag indicating whether to use TLS for the connection, by default True.
+    tls_config : TlsConfig, optional
+        Configuration for TLS, providing paths to CA, client certificate, and client key, by default None.
     channel : grpc.Channel
-        The gRPC channel used for communication with the Chronoqueue service.
-
+        The gRPC channel used to communicate with the Chronoqueue service.
     stub : chronoqueue_pb2_grpc.ChronoQueueStub
-        The gRPC stub generated from the protobuf definitions, enabling direct interaction with 
-        the Chronoqueue service.
+        A gRPC stub to interact with the Chronoqueue service using the gRPC protocol.
 
     Examples:
     --------
     # Initialize the client for a secure connection
-    >>> client = ChronoqueueClient(host="localhost", port=50051, use_tls=True, cert_path="/path/to/cert.crt")
+    >>> client = ChronoqueueClient(host="localhost", port=50051, use_tls=True, tls_config=my_tls_config)
 
     # Create a new queue
     >>> client.create_queue(CreateQueueParams(name="my_new_queue"))
@@ -52,42 +55,41 @@ class ChronoqueueClient:
     # Post a message to a queue
     >>> msg_params = PostMessageParams(message_id="12345", data={"key": "value"})
     >>> client.post_message(msg_params)
-
     """
 
-    def __init__(self, host, port, use_tls=True, tls_config: TlsConfig = None):
+    def __init__(self, host: str, port: int, use_tls=True, tls_config: TlsConfig = None):
         """
-        Initializes the Chronoqueue SDK client.
+        Initialize the ChronoqueueClient.
 
-        This constructor establishes a connection to the Chronoqueue service either over a secure 
-        (TLS) channel or an insecure channel based on the provided parameters.
+        Establishes a connection to the Chronoqueue service, using either a secure or insecure 
+        channel, based on the provided parameters. It initializes the gRPC channel and stub, 
+        facilitating further interactions with the Chronoqueue service.
 
         Parameters:
         ----------
-            host (str): The host address of the Chronoqueue service.
-            port (int): The port number of the Chronoqueue service.
-            use_tls (bool, optional): Flag to determine if TLS should be used. Defaults to True.
-            tls_config (TlsConfig, optional): The TLS configuration for secure connections.
+        host : str
+            The hostname or IP address of the Chronoqueue service.
+        port : int
+            The port number on which the Chronoqueue service is running.
+        use_tls : bool, optional
+            Indicates whether to use TLS for the connection, by default True.
+        tls_config : TlsConfig, optional
+            Configuration for TLS connectivity, providing paths to CA, client certificate, 
+            and client key. Required if `use_tls` is True, by default None.
 
         Raises:
         ------
-        InitializationError:
-            If `use_tls` is True but `cert_path` is not provided.
-
-        Example:
-        --------
-        # For a secure connection
-        >>> client = ChronoqueueClient(host="localhost", port=50051, use_tls=True, cert_path="/path/to/cert.crt")
-
-        # For an insecure connection
-        >>> client = ChronoqueueClient(host="localhost", port=50051, use_tls=False)
-
+        InitializationError
+            If `use_tls` is True but `tls_config` is not provided or the file paths within 
+            `tls_config` do not exist.
         """
         self.host = host
         self.port = port
+        self._use_tls = use_tls
+        self._tls_config = tls_config
 
-        if use_tls:
-            if tls_config is None:
+        if self._use_tls:
+            if self._tls_config is None:
                 raise InitializationError("TLS is enabled but no TlsConfig provided")
             
             # Check for the existence of the files before trying to read them.
@@ -106,7 +108,7 @@ class ChronoqueueClient:
         else:
             self.channel = grpc.insecure_channel(f"{host}:{port}")
         self.stub = chronoqueue_pb2_grpc.ChronoQueueStub(self.channel)
-        self.heartbeat_data = deque()
+        self._heartbeat_data = deque()
         self.lock = threading.Lock()
         self._stop_heartbeat = threading.Event()  # Signal to stop the heartbeat thread
 
@@ -140,20 +142,27 @@ class ChronoqueueClient:
 
         Returns:
         -------
-        response : CreateQueueResponse
-            The response from the Chronoqueue service, containing details about the created queue.
+        ResponseWrapper
+            A wrapper around the gRPC response from the Chronoqueue service, containing details 
+            about the CreateQueueResponse queue and facilitating type-safe access to response fields.
 
         Raises:
         ------
-        RpcOperationError:
-            If there's an error performing the gRPC operation and no custom error handler is provided.
+        RpcOperationError
+            If the gRPC operation encounters an error and no custom error handler is provided.
 
         Example:
         --------
         >>> from chronoqueuesdk import QueueOptions
-        >>> options = QueueOptions(type=QueueType.SIMPLE, exclusivity_key="key123")
+        >>> options = QueueOptions(type=QueueType.SIMPLE, exclusivity_key="key123", dequeue_attempts=3)
         >>> client.create_queue(name="my_new_queue", options=options)
 
+        Notes:
+        -----
+        - `QueueOptions` allows you to customize behaviors like message invisibility duration, 
+        which defines how long a message will stay invisible (unavailable to workers) after 
+        being dequeued and before being requeued again if not acknowledged.
+        - Ensure `name` adheres to any naming conventions or limitations imposed by the Chronoqueue service.
         """
         try:
             queueOptions = chronoqueue_pb2.Queue.Options(
@@ -171,7 +180,7 @@ class ChronoqueueClient:
             error = RpcOperationError(f"Failed to create queue due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
-    def delete_queue(self, name, error_handler=None) -> ResponseWrapper:
+    def delete_queue(self, name: str, error_handler=None) -> ResponseWrapper:
         """
         Deletes a specified queue from the Chronoqueue service.
 
@@ -192,17 +201,18 @@ class ChronoqueueClient:
 
         Returns:
         -------
-        response : DeleteQueueResponse
-            The response from the Chronoqueue service, confirming the deletion of the queue.
+        ResponseWrapper
+            A wrapper around the gRPC response from the Chronoqueue service, containing details 
+            about the DeleteQueueResponse and facilitating type-safe access to response fields.
 
         Raises:
         ------
         RpcOperationError:
-            If there's an error performing the gRPC operation and no custom error handler is provided.
+            If the gRPC operation encounters an error and no custom error handler is provided.
 
         Example:
         --------
-        >>> client.delete_queue("my_queue_to_delete")
+        >>> client.delete_queue(name="my_queue_to_delete")
 
         """
         try:
@@ -216,50 +226,42 @@ class ChronoqueueClient:
     
     def post_message(self, msg_params: PostMessageParams, error_handler=None) -> ResponseWrapper:
         """
-        Posts a new message to the Chronoqueue service.
+        Post a message to a specified queue in the Chronoqueue service.
 
-        This method allows to send a message to the Chronoqueue service, providing flexibility in terms of message
-        parameters and additional options. Errors encountered during the operation can be handled using a custom error handler
-        or the SDK's default mechanism.
+        Utilizing this method, messages, can be dispatched to a queue in Chronoqueue. The `msg_params` parameter allows you to 
+        specify the core attributes of a message, whereas any error during the message posting process can 
+        be managed through a custom or default error handling approach.
 
         Parameters:
         ----------
         msg_params : PostMessageParams
-            Contains the core parameters for the message, such as `message_id`, `data`, and `queue_name`.
-            - `message_id` (str): The unique identifier for the message.
-            - `data` (dict): The data to be sent as a message, represented as a dictionary.
-            - `queue_name` (str): The name of the queue to post the message to. Default is "default_queue".
-
-        msg_options : PostMessageOptions, optional (default=PostMessageOptions())
-            Contains additional options and configurations for the message.
-            - `priority` (int): The priority level of the message. Default is 0.
-            - `state` (MessageState): The initial state of the message. Default is INVISIBLE.
-            - `invisibility_duration` (int): Duration (in seconds) the message should remain invisible. Default is 0.
-            - `attempts_left` (int): Number of delivery attempts left for the message. Default is 3.
-            - `data_metadata` (dict): The metadata option that can be attached to the data sent as a message, represented as a dictionary. Default is an empty dictionary.
-
+            Parameters defining the essentials of the message, inclusive of:
+            - `message_id` (str): A unique identifier for the message.
+            - `data` (dict): The message content, represented as a dictionary.
+            - `queue_name` (str): The queue to which the message will be posted.
+            
         error_handler : callable, optional
-            A custom error handling function that will be called if an error occurs during the operation.
-            The function should accept a single argument, which is the error/exception object.
-            If not provided, the SDK's default error handling mechanism will be used.
+            A custom function to manage errors during the message posting process. This function should 
+            accept an error/exception object as a parameter. If omitted, the SDK’s default error handling 
+            is employed, by default None.
 
         Returns:
         -------
-        response : PostMessageResponse
-            The response from the Chronoqueue service, containing details about the posted message.
+        ResponseWrapper
+            A wrapper around the gRPC response from the Chronoqueue service, providing a type-safe means 
+            to access response details and containing insights about the dispatched message.
 
         Raises:
         ------
-        RpcOperationError:
-            If there's an error performing the gRPC operation and no custom error handler is provided.
+        RpcOperationError
+            If the gRPC operation encounters an error and no custom error handler is defined.
 
         Example:
         --------
         >>> msg_params = PostMessageParams(message_id="12345", data={"key": "value"}, queue_name="my_queue")
-        >>> options = PostMessageOptions(priority=5, state=MessageState.PENDING)
         >>> def custom_error_handler(error):
-        ...     print(f"Error encountered: {error}")
-        >>> client.post_message(msg_params, msg_options, error_handler=custom_error_handler)
+        ...     print(f"Custom error handler: {error}")
+        >>> client.post_message(msg_params, error_handler=custom_error_handler)
 
         """
         try:
@@ -272,67 +274,65 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def get_next_message(self, queue_name: str, lease_duration: str, exclusivity_key: str = "", renew_lease_threshold=None, error_handler=None) -> ResponseWrapper:
+    def get_next_message(self, queue_name: str, lease_duration: str, exclusivity_key: str = "", enable_heartbeat=False, error_handler=None) -> ResponseWrapper:
         """
-        Retrieves the next message from the specified queue in the Chronoqueue service.
+        Retrieve the next message from a specified queue in the Chronoqueue service.
 
-        This method fetches the next available message from the queue, making it unavailable 
-        for other consumers for a certain period of time (defined by the lease duration). 
-        If an error occurs during the message retrieval, it can be handled using a custom error handler 
-        or the SDK's default mechanism.
-
-        Optionally, for messages that support lease renewals, the method can automatically send 
-        heartbeats to the service to renew the lease on the message. This can be controlled using 
-        the `heartbeat_frequency` and `renew_lease_threshold` parameters.
+        This method obtains the subsequent available message from a queue, making it 
+        inaccessible to other consumers for a stipulated period (defined by the lease duration). 
+        Optionally, the SDK can manage the message lease by automatically sending heartbeats 
+        to the service, based on the `enable_heartbeat` parameter. In the event of errors 
+        during message retrieval, custom or default error-handling mechanisms can be employed.
 
         Parameters:
         ----------
         queue_name : str
-            The name of the queue from which the next message is to be fetched.
-        lease_duration : int
-            The number (in seconds) a message will be leased for.
+            The name of the queue from which to fetch the next message.
+
+        lease_duration : str
+            Duration (in seconds) to lease the message, during which it will be inaccessible to other consumers.
+
         exclusivity_key : str, optional
-            Required if the queue to query is of exclusive type.
-        heartbeat_frequency : float, optional
-            The frequency (in seconds) at which the SDK should send heartbeats to renew the message lease.
-            If not provided, defaults to one-third of the `lease_duration`.
-        renew_lease_threshold : float, optional
-            A threshold value in the range (0, 1) that determines when to start renewing the message lease.
-            For example, a threshold of 0.5 means the SDK will start sending heartbeats when half of the lease duration has passed.
+            An exclusive key required for queues of exclusive type, by default "".
+
+        enable_heartbeat : bool, optional
+            A flag to enable/disable the automatic sending of heartbeats for managing message leases, by default False.
+
         error_handler : callable, optional
-            A custom error handling function that will be called if an error occurs during the operation.
-            The function should accept a single argument, which is the error/exception object.
-            If not provided, the SDK's default error handling mechanism will be used.
+            An optional custom function for error management during message retrieval. It should accept an error/exception 
+            object as its parameter. If not provided, the SDK’s default error handling will be employed, by default None.
 
         Returns:
         -------
-        response : ResponseWrapper
-            The wrapper containing GetNextMessageResponse response from the Chronoqueue service, containing details about the fetched message.
+        ResponseWrapper
+            A wrapper of the response from the Chronoqueue service, providing insights and details about the retrieved message.
 
         Raises:
         ------
-        RpcOperationError:
-            If there's an error performing the gRPC operation and no custom error handler is provided.
-        ValueError:
-            If the provided `renew_lease_threshold` is not in the range (0, 1).
+        RpcOperationError
+            If the gRPC operation fails and no custom error handler is set.
 
         Example:
         --------
-        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300).to_dict() # For returning a dictionary response
-        >>> message = client.get_next_message(queue_name="my_queue", lease_duration=300).to_proto() # For returning grpc response
+        >>> message = client.get_next_message(queue_name="my_queue", lease_duration="300").to_dict()  # To obtain a dictionary response
+        >>> message = client.get_next_message(queue_name="my_queue", lease_duration="300").to_proto()  # To obtain a grpc response
 
+        Notes:
+        -----
+        - Ensure `queue_name` corresponds to an existing and accessible queue in the Chronoqueue service.
+        - The `lease_duration` should be set considering the processing time required for a message to avoid early lease expiration.
+        - The `exclusivity_key` is pivotal when dealing with exclusive type queues and should be managed securely.
+        - Utilizing `enable_heartbeat` can be beneficial for maintaining the lease of long-processing messages and mitigating premature visibility.
         """
         try:
-            # Validate renew_lease_threshold to be in the range (0, 1)
-            if renew_lease_threshold is not None and (renew_lease_threshold <= 0 or renew_lease_threshold >= 1):
-                raise ValueError("`renew_lease_threshold` should be in the range (0, 1)")
+            
             pb_release_duration: Duration = string_to_duration(lease_duration)
 
             request = chronoqueue_pb2.GetNextMessageRequest(queue_name=queue_name, lease_duration=pb_release_duration, exclusivity_key=exclusivity_key)
             response = self.stub.GetNextMessage(request)
             response_wrapper = ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_get_next_message_response)
 
-            if len(response_wrapper.to_dict()) != 0 and renew_lease_threshold is not None:  # If a message was fetched and renew_lease_threshold is provided
+            if len(response_wrapper.to_dict()) != 0 and enable_heartbeat :  # If a message was fetched and renew_lease_threshold is provided
                 message_id = response_wrapper.to_dict().get("message_id")
 
                 # Extract configuration from message metadata
@@ -342,16 +342,16 @@ class ChronoqueueClient:
                 # If heartbeat_frequency is not set, don't add to heartbeat mechanism
                 if heartbeat_frequency:
                     with self.lock:
-                        self.heartbeat_data.append({
+                        self._heartbeat_data.append({
                             'queue_name': queue_name,
                             'message_id': message_id,
                             'max_reconnect_attempts': max_reconnect_attempts,
                             'heartbeat_frequency': heartbeat_frequency
                         })
                     # Start the heartbeat manager if not already started
-                    if not hasattr(self, 'heartbeat_manager_thread') or not self.heartbeat_manager_thread.is_alive():
-                        self.heartbeat_manager_thread = threading.Thread(target=self.manage_heartbeats)
-                        self.heartbeat_manager_thread.start()
+                    if not hasattr(self, '_heartbeat_manager_thread') or not self._heartbeat_manager_thread.is_alive():
+                        self._heartbeat_manager_thread = threading.Thread(target=self.__manage_heartbeats)
+                        self._heartbeat_manager_thread.start()
 
             return response_wrapper
         except grpc.RpcError as e:
@@ -360,9 +360,38 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
 
 
-    def manage_heartbeats(self):
-        while self.heartbeat_data and not self._stop_heartbeat.is_set():
-            item = self.heartbeat_data.popleft()
+    def __manage_heartbeats(self):
+        """
+        Manage the heartbeats for leased messages in the Chronoqueue service.
+
+        This private method manages the heartbeats for messages obtained from the Chronoqueue service. 
+        It ensures that the lease on a message is maintained by periodically sending heartbeat messages 
+        to the service, thereby extending the lease duration and preventing premature message visibility 
+        to other consumers.
+
+        This method runs in a separate thread and continuously monitors the `heartbeat_data` deque for
+        items to process. For each item, it sends a heartbeat message to the Chronoqueue service at 
+        regular intervals specified by the `heartbeat_frequency` parameter within the item.
+
+        In the case of failures or errors during the heartbeat message sending (like network issues), 
+        the method employs an exponential back-off strategy with jitter to retry the heartbeat message 
+        sending, up to a specified number of attempts defined by `max_reconnect_attempts` in the item.
+
+        Note:
+        ----
+        This method is intended to run in a dedicated thread and should not be called directly in normal 
+        SDK usage. It's pivotal in maintaining message leases during long-running message processing tasks 
+        and ensures coherent and reliable message consumption from the Chronoqueue service.
+
+        Warning:
+        -------
+        Mismanagement or premature termination of the heartbeat manager thread can lead to issues 
+        with message lease maintenance and might result in a message becoming visible to other consumers 
+        before it's fully processed. Ensure to manage SDK termination and error handling adequately to 
+        prevent such scenarios.
+        """
+        while self._heartbeat_data and not self._stop_heartbeat.is_set():
+            item = self._heartbeat_data.popleft()
             reconnect_attempts = 0
             if not isinstance(item, dict):
                 logging.error(f"Unexpected item in heartbeat_data: {item}")
@@ -407,14 +436,13 @@ class ChronoqueueClient:
 
         Returns:
         -------
-        response : AcknowledgeMessageResponse
-            The response from the Chronoqueue service, containing details about the acknowledgment status.
-            As of version 1, this returns empty AcknowledgeMessageResponse.
+        ResponseWrapper
+            A wrapper of the response from the Chronoqueue service, providing insights and details about the acknowledged message.
 
         Raises:
         ------
-        RpcOperationError:
-            If there's an error performing the gRPC operation and no custom error handler is provided.
+        RpcOperationError
+            If the gRPC operation fails and no custom error handler is set.
 
         Example:
         --------
@@ -438,7 +466,7 @@ class ChronoqueueClient:
             self._handle_error(error, handler=error_handler)
         
 
-    def renew_message_lease(self, message_id: str, new_lease_duration: Duration, error_handler=None) -> ResponseWrapper:
+    def renew_message_lease(self, message_id: str, new_lease_duration: str, error_handler=None) -> ResponseWrapper:
         """
         Renews the lease duration of a specified message in the Chronoqueue service.
 
@@ -453,31 +481,45 @@ class ChronoqueueClient:
         message_id : str
             The unique identifier of the message whose lease is to be renewed.
 
-        new_lease_duration : int
-            The new lease duration (in seconds) for the message.
+        new_lease_duration : str
+            The desired new lease duration for the message, represented as a string with a time unit 
+            suffix ("s" for seconds, "m" for minutes, "h" for hours, and "d" for days). 
+            E.g., "5s" for 5 seconds or "2m" for 2 minutes.
 
         error_handler : callable, optional
-            A custom error handling function that will be called if an error occurs during the operation.
+            A custom error handling function that will be invoked if an error occurs during the operation.
             The function should accept a single argument, which is the error/exception object.
-            If not provided, the SDK's default error handling mechanism will be used.
+            If not provided, the SDK's default error handling mechanism will be utilized.
 
         Returns:
         -------
-        response : RenewMessageLeaseResponse
-            The response from the Chronoqueue service, containing details about the renewed lease status.
+        response : ResponseWrapper
+            A wrapper containing the RenewMessageLeaseResponse from the Chronoqueue service, offering 
+            details about the status and any relevant information about the lease renewal process. 
+            The ResponseWrapper allows response data to be accessed in different formats (e.g., dict or proto).
 
         Raises:
         ------
         RpcOperationError:
-            If there's an error performing the gRPC operation and no custom error handler is provided.
+            If an error occurs during the gRPC operation and no custom error handler is provided.
 
         Example:
         --------
-        >>> client.renew_message_lease(message_id="12345", new_lease_duration=300)
+        # Renew the lease duration of a message for an additional 300 seconds (5 minutes)
+        >>> client.renew_message_lease(message_id="12345", new_lease_duration="5m")
+
+        Note:
+        ----
+        Ensuring the accurate renewal of message leases is critical for maintaining coherent processing
+        workflows, especially in distributed systems where multiple consumers might be interacting with 
+        the same queue. Always ensure to handle errors and edge cases effectively to prevent message 
+        processing conflicts and ensure the reliable operation of your application.
 
         """
         try:
-            request = chronoqueue_pb2.RenewMessageLeaseRequest(message_id=message_id, lease_duration=new_lease_duration)
+            pb_release_duration: Duration = string_to_duration(new_lease_duration)
+
+            request = chronoqueue_pb2.RenewMessageLeaseRequest(message_id=message_id, lease_duration=pb_release_duration)
             response = self.stub.RenewMessageLease(request)
             return ResponseWrapper(response_protobuf=response, converter_func=protobuf_to_renew_message_lease_response)
         except grpc.RpcError as e:
@@ -511,6 +553,13 @@ class ChronoqueueClient:
         -------
         response : PeekQueueMessagesResponse
             The response from the Chronoqueue service, containing the peeked messages and related details.
+
+        Returns:
+        -------
+        response : ResponseWrapper
+            A wrapper containing the PeekQueueMessagesResponse from the Chronoqueue service, offering 
+            details about the the peeked messages and related details. 
+            The ResponseWrapper allows response data to be accessed in different formats (e.g., dict or proto).
 
         Raises:
         ------
@@ -559,8 +608,10 @@ class ChronoqueueClient:
 
         Returns:
         -------
-        response : GetQueueStateResponse
-            The response from the Chronoqueue service, containing details about the state of the specified queue.
+        response : ResponseWrapper
+            A wrapper containing the GetQueueStateResponse from the Chronoqueue service, offering 
+            details about about the state of the specified queue. 
+            The ResponseWrapper allows response data to be accessed in different formats (e.g., dict or proto).
 
         Raises:
         ------
@@ -583,16 +634,24 @@ class ChronoqueueClient:
 
     def send_message_heartbeat(self, queue_name, message_id, error_handler=None) -> ResponseWrapper:
         """
-        Sends a heartbeat for the specified message to the Chronoqueue service.
+        Manually sends a heartbeat for a specified message to the Chronoqueue service.
+
+        Sending a heartbeat for a message signals to the Chronoqueue service that the message is still 
+        being processed and its lease should be maintained. This method allows you to manually send 
+        heartbeats for a message, which might be necessary in long-running tasks to prevent the message 
+        from becoming visible and being redelivered to another consumer.
+
+        Note: The SDK provides a built-in heartbeat mechanism that can automatically send heartbeats 
+        for fetched messages. Consider using this built-in feature when fetching messages to simplify 
+        message lease management and avoid manually managing heartbeats.
 
         Parameters:
         ----------
         queue_name : str
-            The unique name of the queue for which the message is stored.
+            The name of the queue from which the message was fetched.
+
         message_id : str
             The unique identifier of the message for which the heartbeat is being sent.
-        frequency : int, optional
-            The interval in which a heartbeat must be sent.
 
         error_handler : callable, optional
             A custom error handling function that will be called if an error occurs during the operation.
@@ -602,12 +661,18 @@ class ChronoqueueClient:
         Returns:
         -------
         response : ResponseWrapper
-            The wrapper containing SendMessageHeartBeatResponse response from the Chronoqueue service.
+            The wrapper containing SendMessageHeartBeatResponse from the Chronoqueue service, 
+            providing details about the status of the heartbeat operation.
 
         Raises:
         ------
         RpcOperationError:
             If there's an error performing the gRPC operation and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> client.send_message_heartbeat(queue_name="my_queue", message_id="12345")
+
         """
         try:
             request = chronoqueue_pb2.SendMessageHeartBeatRequest(queue_name=queue_name, message_id=message_id)
@@ -622,19 +687,21 @@ class ChronoqueueClient:
 
     def close(self, error_handler=None) -> None:
         """
-        Closes the gRPC channel used by the SDK to communicate with the Chronoqueue service.
+        Gracefully closes the gRPC channel and stops the heartbeat manager.
 
-        This method ensures that resources are properly released and the SDK cleans up any 
-        open connections to the Chronoqueue service. It is recommended to call this method 
-        once you are done using the SDK. If any error occurs during the closing process, 
-        it can be handled using a custom error handler or the SDK's default mechanism.
+        Closes the gRPC channel used by the SDK to communicate with the Chronoqueue service, ensuring 
+        that resources are released and open connections to the service are terminated. If the SDK 
+        is configured to manage message heartbeats, it also stops the heartbeat manager thread. It is 
+        recommended to invoke this method when the SDK is no longer needed, such as when your 
+        application is terminating, to cleanly shut down the SDK components. If an error occurs during 
+        the closing process, it can be handled using a custom error handler or the SDK's default mechanism.
 
         Parameters:
         ----------
         error_handler : callable, optional
-            A custom error handling function that will be called if an error occurs during the operation.
+            A custom error handling function that will be invoked if an error occurs during the operation.
             The function should accept a single argument, which is the error/exception object.
-            If not provided, the SDK's default error handling mechanism will be used.
+            If not provided, the SDK's default error handling mechanism will be utilized.
 
         Returns:
         -------
@@ -650,14 +717,13 @@ class ChronoqueueClient:
         >>> client = ChronoqueueClient(host="localhost", port=50051)
         >>> # ... perform operations ...
         >>> client.close()
-
         """
         try:
             if self.channel and self.channel._channel.check_connectivity_state(True) != grpc.ChannelConnectivity.SHUTDOWN:
                 # Signal the heartbeat thread to stop
                 self._stop_heartbeat.set()
                 # Wait for the heartbeat thread to finish
-                self._heartbeat_thread.join()
+                self._heartbeat_manager_thread.join()
                 return self.channel.close()
         except grpc.RpcError as e:
             logging.error(f"Error closing rpc channel: {e.details()}")

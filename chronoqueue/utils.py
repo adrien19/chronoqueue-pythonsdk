@@ -220,14 +220,12 @@ def _create_post_message_request(params: PostMessageParams) -> chronoqueue_pb2.P
 
     Args:
         params (PostMessageParams): required parameters for posting a message
-        options (dict): Additional options for the message, such as priority, state, etc.
 
     Returns:
         PostMessageRequest: The populated protobuf request object.
     """
 
     # Convert Python dict to Struct
-    # data_struct = ParseDict(params.data, Struct())
     data_struct = dict_to_protobuf_struct(params.data)
 
     # Convert Python dict to map<string, Value>
@@ -270,21 +268,11 @@ class ResponseWrapper:
     user-friendly dictionary format. The provided converter function will be used to transform
     the protobuf response into a dictionary when needed.
 
-    Additionally, the ResponseWrapper contains fields like `remaining_lease_time` and `stop_event`
-    which can be used in the context of certain operations, such as message leasing and heartbeats.
-
     Args:
         response_protobuf: The gRPC protobuf response object.
             This is the raw response received from the gRPC service.
         converter_func: A callable that converts the protobuf response to a dictionary.
             This function should accept a single argument (the protobuf response) and return a dictionary.
-
-    Attributes:
-        remaining_lease_time (float, optional): The remaining time (in seconds) for a leased message.
-            This can be used in conjunction with heartbeats to determine when to renew a message's lease.
-            By default, this is set to None, indicating it's not used.
-        stop_event (threading.Event, optional): An event that can be set to signal operations (like heartbeats)
-            to stop. By default, this is set to None.
 
     """
 

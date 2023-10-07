@@ -6,6 +6,33 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf.duration_pb2 import Duration
 
 def is_empty_proto_message(message):
+    """
+    Determines if a protobuf message is empty.
+
+    This function checks whether a protobuf message is empty, meaning it doesn’t contain 
+    any non-default values. It iterates through all fields of the message and checks 
+    scalar fields, repeated fields, map fields, and nested message fields recursively 
+    to ensure that they either contain default values or are empty.
+
+    Parameters:
+    ----------
+    message : google.protobuf.message.Message
+        The protobuf message instance to check for emptiness.
+
+    Returns:
+    -------
+    bool
+        True if the message is empty or contains only default values, False otherwise.
+
+    Example:
+    --------
+    >>> from my_proto_package import MyMessage
+    >>> message = MyMessage()
+    >>> is_empty = is_empty_proto_message(message)
+    >>> print(is_empty)
+    True
+    
+    """
     if message.ByteSize() == 0:
         return True
     
