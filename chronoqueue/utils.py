@@ -241,12 +241,12 @@ def _create_post_message_request(params: PostMessageParams) -> chronoqueue_pb2.P
         lease_duration=string_to_duration(params.options.lease_duration),
         invisibility_duration=string_to_duration(params.options.invisibility_duration),
         attempts_left=params.options.attempts_left,
+        priority=params.options.priority,
     )
 
     # Create the main Message using provided message_id, options or default values.
     message = chronoqueue_pb2.Message(
         message_id=params.message_id,
-        priority=params.options.priority,
         metadata=metadata
     )
 

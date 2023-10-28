@@ -105,7 +105,6 @@ def message_to_protobuf(message: Dict) -> chronoqueue_pb2.Message:
     metadata = message_metadata_to_protobuf(message.get('metadata', {}))
     return chronoqueue_pb2.Message(
         message_id=message.get('message_id', ""),
-        priority=message.get('priority', 0),
         metadata=metadata
     )
 
@@ -115,7 +114,6 @@ def protobuf_to_message(message_protobuf: chronoqueue_pb2.Message) -> Dict:
     metadata = protobuf_to_message_metadata(message_protobuf.metadata)
     return {
         'message_id': message_protobuf.message_id,
-        'priority': message_protobuf.priority,
         'metadata': metadata
     }
 
@@ -132,7 +130,8 @@ def message_metadata_to_protobuf(metadata: Dict) -> chronoqueue_pb2.Message.Meta
         lease_duration=metadata.get('lease_duration', Duration()),
         lease_expiry=metadata.get('lease_expiry', 0),
         lease_renewal_count=metadata.get('lease_renewal_count', 0),
-        invisibility_expiry=metadata.get('invisibility_expiry', 0)
+        invisibility_expiry=metadata.get('invisibility_expiry', 0),
+        priority=metadata.get('priority', 0),
     )
 
 def protobuf_to_message_metadata(metadata_protobuf: chronoqueue_pb2.Message.Metadata) -> Dict:
@@ -150,7 +149,8 @@ def protobuf_to_message_metadata(metadata_protobuf: chronoqueue_pb2.Message.Meta
         'lease_duration': lease_duration,
         'lease_expiry': metadata_protobuf.lease_expiry,
         'lease_renewal_count': metadata_protobuf.lease_renewal_count,
-        'invisibility_expiry': metadata_protobuf.invisibility_expiry
+        'invisibility_expiry': metadata_protobuf.invisibility_expiry,
+        'priority': metadata_protobuf.priority,
     }
 
 # --- Queue Conversion ---
