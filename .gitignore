@@ -56,14 +56,28 @@ pytestdebug.log
 *.swo
 *~
 
-# # gRPC generated files
+# gRPC generated files (commented out - we track these)
 # *_pb2.py
 # *_pb2_grpc.py
 
 # Environment files
 .env
 .venv/
+venv/
+env/
 
+# Poetry
+poetry.lock
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
 
 # End of https://www.gitignore.io/api/python
 deploy/olm-catalog/k8s-triliovault/.DS_Store

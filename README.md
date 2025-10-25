@@ -1,5 +1,11 @@
 # Chronoqueue Python SDK
 
+[![CI](https://github.com/adrien19/chronoqueue-pythonsdk/workflows/CI/badge.svg)](https://github.com/adrien19/chronoqueue-pythonsdk/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/chronoqueue.svg)](https://badge.fury.io/py/chronoqueue)
+[![Python Versions](https://img.shields.io/pypi/pyversions/chronoqueue.svg)](https://pypi.org/project/chronoqueue/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 The official Python SDK for the Chronoqueue service. Seamlessly integrate and manage Chronoqueue functionalities in Python applications. Provides an intuitive interface for interacting with the Chronoqueue service using gRPC, with optional SSL/TLS support. Designed for both development and production environments.
 
 ## Key Features:
@@ -34,19 +40,59 @@ pip install grpcio
 ```
 
 ## Setup
-1. Use Poetry for dependency management:
+
+### For Development
+
+1. Install Poetry for dependency management:
 
     ```bash 
     poetry install
     ```
-
-2. Before you can interact with the Chronoqueue service, you must generate the necessary gRPC classes. Run the provided shell script to generate these:
-
+   
+   Or use the Makefile:
+   
     ```bash
-    ./generate_proto_classes_from_github.sh
+    make install-dev
     ```
 
-This script fetches the necessary .proto files and generates Python gRPC classes for you.
+2. Generate the necessary gRPC classes from proto files:
+
+    ```bash
+    make gen-proto
+    ```
+
+### Available Make Targets
+
+The project includes a comprehensive Makefile for common development tasks:
+
+- `make install` - Install production dependencies only
+- `make install-dev` - Install all dependencies including dev tools
+- `make gen-proto` - Generate Python gRPC classes from proto files
+- `make clean` - Remove generated files and cache
+- `make test` - Run unit tests
+- `make test-coverage` - Run tests with coverage reporting
+- `make lint` - Run linting checks (flake8, mypy)
+- `make format` - Format code with black and isort
+- `make typecheck` - Run type checking with mypy
+- `make build` - Build package distribution
+- `make ci` - Run all CI checks (lint + test)
+- `make all` - Complete setup (install-dev)
+
+### CI/CD
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+- **CI Pipeline** (`.github/workflows/ci.yml`):
+  - Runs on push to main, develop branches and pull requests
+  - Tests across Python 3.10, 3.11, and 3.12
+  - Performs linting, type checking, and testing
+  - Generates coverage reports
+  - Builds the package
+
+- **Release Pipeline** (`.github/workflows/release.yml`):
+  - Triggers on new GitHub releases
+  - Builds and publishes to PyPI
+  - Supports manual dispatch to TestPyPI
 
 ## Usage 
 
