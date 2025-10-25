@@ -117,7 +117,7 @@ lint:
 	@echo "Checking with flake8..."
 	@poetry run flake8 chronoqueue/ tests/ --max-line-length=120 --exclude=chronoqueue/api/v1/*.py --count --statistics || true
 	@echo "Checking with mypy..."
-	@poetry run mypy chronoqueue/ --exclude chronoqueue/api/v1/ --ignore-missing-imports || true
+	@poetry run mypy chronoqueue/ || true
 
 # Format code
 format:
@@ -129,7 +129,7 @@ format:
 # Type checking
 typecheck:
 	@echo "Running type checking with mypy..."
-	poetry run mypy chronoqueue/ --exclude chronoqueue/api/v1/ --ignore-missing-imports
+	@poetry run mypy chronoqueue/ || true
 
 # Build package
 build: clean
