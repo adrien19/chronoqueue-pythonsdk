@@ -17,14 +17,19 @@ classifiers = [
 keywords = ["chronoqueue", "grpc", "sdk"]
 
 [tool.poetry.dependencies]
-python = "^3.10"  # Minimum supported version
-grpcio = "^1.37.1"
-protobuf = "4.21.6"
+python = "^3.10"
+grpcio = "^1.60.0"
+protobuf = "^4.21.6"
 
-[tool.poetry.dev-dependencies]
-grpcio-tools = "1.58.0"
-mypy-protobuf = "^2.4"
+[tool.poetry.group.dev.dependencies]
+grpcio-tools = "^1.60.0"
+mypy-protobuf = "^3.5.0"
 pytest = "^7.0.0"
+pytest-cov = "^4.0.0"
+black = "^23.0.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+mypy = "^1.0.0"
 
 
 [tool.poetry.urls]
@@ -34,6 +39,63 @@ Tracker = "https://github.com/adrien19/chronoqueue_sdk/issues"
 [build-system]
 build-backend = "poetry.core.masonry.api"
 requires = ["poetry-core>=1.0.0"]
-#packages = [
-#    { include = "chronoqueue" }
-#]
+
+[tool.black]
+line-length = 120
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.eggs
+  | \.mypy_cache
+  | \.pytest_cache
+  | __pycache__
+  | build
+  | dist
+  | chronoqueue/api/v1
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip_glob = ["chronoqueue/api/v1/*.py"]
+known_first_party = ["chronoqueue"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+exclude = [
+    "chronoqueue/api/v1/",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.coverage.run]
+source = ["chronoqueue"]
+omit = [
+    "*/tests/*",
+    "*/chronoqueue/api/v1/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
