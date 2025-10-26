@@ -109,11 +109,13 @@ make gen-proto
 
 This will:
 - Generate Python gRPC classes from all `.proto` files
-- Fix imports to use relative imports
+- Reorganize files to `chronoqueue/api/` (removing `proto/` prefix)
+- Fix imports to use `chronoqueue.api.*` instead of `proto.*`
+- Use relative imports within packages
 - Format the generated code with Black and isort
 - Create proper Python package structure
 
-**Important:** Generated proto files in `chronoqueue/api/proto/` are **checked into version control**. This allows users to install the SDK without needing build tools. After running `make gen-proto`, commit the changes.
+**Important:** Generated files in `chronoqueue/api/{common,google,message,queue,queueservice,schedule,schema}/` are **checked into version control**. This allows users to install the SDK without needing build tools. After running `make gen-proto`, commit the changes.
 
 **Advanced Configuration:**
 

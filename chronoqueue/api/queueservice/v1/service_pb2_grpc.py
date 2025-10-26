@@ -2,7 +2,9 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from proto.queueservice.v1 import request_response_pb2 as proto_dot_queueservice_dot_v1_dot_request__response__pb2
+from chronoqueue.api.queueservice.v1 import (
+    request_response_pb2 as proto_dot_queueservice_dot_v1_dot_request__response__pb2,
+)
 
 
 class QueueServiceStub(object):

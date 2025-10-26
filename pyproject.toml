@@ -75,7 +75,15 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
-module = "chronoqueue.api.proto.*"
+module = [
+    "chronoqueue.api.common.*",
+    "chronoqueue.api.google.*",
+    "chronoqueue.api.message.*",
+    "chronoqueue.api.queue.*",
+    "chronoqueue.api.queueservice.*",
+    "chronoqueue.api.schedule.*",
+    "chronoqueue.api.schema.*",
+]
 follow_imports = "skip"
 ignore_errors = true
 

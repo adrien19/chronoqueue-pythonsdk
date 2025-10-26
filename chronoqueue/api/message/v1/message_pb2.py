@@ -15,7 +15,7 @@ _sym_db = _symbol_database.Default()
 
 from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb2
 
-from proto.common.v1 import common_pb2 as proto_dot_common_dot_v1_dot_common__pb2
+from chronoqueue.api.common.v1 import common_pb2 as proto_dot_common_dot_v1_dot_common__pb2
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
     b'\n\x1eproto/message/v1/message.proto\x12\x1a\x63hronoqueue.api.message.v1\x1a\x1egoogle/protobuf/duration.proto\x1a\x1cproto/common/v1/common.proto"\xba\x04\n\x07Message\x12\x12\n\nmessage_id\x18\x01 \x01(\t\x12>\n\x08metadata\x18\x03 \x01(\x0b\x32,.chronoqueue.api.message.v1.Message.Metadata\x1a\xda\x03\n\x08Metadata\x12\x33\n\x07payload\x18\x01 \x01(\x0b\x32".chronoqueue.api.common.v1.Payload\x12\x41\n\x05state\x18\x02 \x01(\x0e\x32\x32.chronoqueue.api.message.v1.Message.Metadata.State\x12\x38\n\x15invisibility_duration\x18\x03 \x01(\x0b\x32\x19.google.protobuf.Duration\x12\x15\n\rattempts_left\x18\x04 \x01(\x05\x12\x31\n\x0elease_duration\x18\x05 \x01(\x0b\x32\x19.google.protobuf.Duration\x12\x14\n\x0clease_expiry\x18\x06 \x01(\x03\x12\x1b\n\x13lease_renewal_count\x18\x07 \x01(\x05\x12\x1b\n\x13invisibility_expiry\x18\x08 \x01(\x03\x12\x10\n\x08priority\x18\t \x01(\x03\x12\x14\n\x0cmax_attempts\x18\n \x01(\x05"Z\n\x05State\x12\r\n\tINVISIBLE\x10\x00\x12\x0b\n\x07PENDING\x10\x01\x12\x0b\n\x07RUNNING\x10\x02\x12\r\n\tCOMPLETED\x10\x03\x12\x0c\n\x08\x43\x41NCELED\x10\x04\x12\x0b\n\x07\x45RRORED\x10\x05\x42\x38Z6github.com/adrien19/chronoqueue/api/message/v1;messageb\x06proto3'

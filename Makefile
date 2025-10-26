@@ -103,6 +103,8 @@ gen-proto: setup-dirs check-proto
 	@echo "Generating Python gRPC classes from proto files..."
 	@echo "Cleaning old generated files..."
 	@rm -rf $(OUTPUT_PATH)/*.py
+	@rm -rf $(OUTPUT_PATH)/proto
+	@rm -rf $(OUTPUT_PATH)/common $(OUTPUT_PATH)/google $(OUTPUT_PATH)/message $(OUTPUT_PATH)/queue $(OUTPUT_PATH)/queueservice $(OUTPUT_PATH)/schedule $(OUTPUT_PATH)/schema
 	@find $(PROTO_PATH) -name "*.proto" -type f | while read proto_file; do \
 		echo "Processing $$proto_file..."; \
 	done
@@ -112,19 +114,26 @@ gen-proto: setup-dirs check-proto
 		--python_out=$(OUTPUT_PATH) \
 		--grpc_python_out=$(OUTPUT_PATH) \
 		$$(find $(PROTO_PATH) -name "*.proto" -type f)
-	@echo "Fixing imports in generated gRPC files..."
-	@find $(OUTPUT_PATH) -name "*_pb2_grpc.py" -type f | while read grpc_file; do \
+	@echo "Reorganizing generated files..."
+	@if [ -d "$(OUTPUT_PATH)/proto" ]; then \
+		mv $(OUTPUT_PATH)/proto/* $(OUTPUT_PATH)/ 2>/dev/null || true; \
+		rm -rf $(OUTPUT_PATH)/proto; \
+	fi
+	@echo "Fixing imports in generated files..."
+	@find $(OUTPUT_PATH) -name "*_pb2.py" -o -name "*_pb2_grpc.py" | while read pb_file; do \
 		if [ "$$(uname)" = "Darwin" ]; then \
-			sed -i '' 's/^import \([a-zA-Z0-9_]*\)_pb2 as \([a-zA-Z0-9_]*\)/from . import \1_pb2 as \2/' "$$grpc_file"; \
+			sed -i '' 's/from proto\./from chronoqueue.api./g' "$$pb_file"; \
+			sed -i '' 's/^import \([a-zA-Z0-9_]*\)_pb2 as \([a-zA-Z0-9_]*\)/from . import \1_pb2 as \2/g' "$$pb_file"; \
 		else \
-			sed -i 's/^import \([a-zA-Z0-9_]*\)_pb2 as \([a-zA-Z0-9_]*\)/from . import \1_pb2 as \2/' "$$grpc_file"; \
+			sed -i 's/from proto\./from chronoqueue.api./g' "$$pb_file"; \
+			sed -i 's/^import \([a-zA-Z0-9_]*\)_pb2 as \([a-zA-Z0-9_]*\)/from . import \1_pb2 as \2/g' "$$pb_file"; \
 		fi; \
 	done
 	@echo "Creating __init__.py files in all directories..."
-	@find $(OUTPUT_PATH)/proto -type d -exec touch {}/__init__.py \;
+	@find $(OUTPUT_PATH) -type d -exec touch {}/__init__.py \;
 	@echo "Formatting generated code..."
-	@poetry run black $(OUTPUT_PATH)/proto --line-length=120 --quiet || true
-	@poetry run isort $(OUTPUT_PATH)/proto --profile black --line-length 120 --quiet || true
+	@poetry run black $(OUTPUT_PATH) --line-length=120 --quiet --exclude='__pycache__|\.pyc' || true
+	@poetry run isort $(OUTPUT_PATH) --profile black --line-length 120 --quiet --skip-glob='*/__pycache__/*' || true
 	@echo "Python gRPC classes generated successfully!"
 	@echo "Generated $$(find $(OUTPUT_PATH) -name "*.py" -type f | wc -l) Python file(s)"
 
@@ -145,8 +154,13 @@ clean:
 # Clean everything including generated proto code
 clean-all: clean
 	@echo "Cleaning generated proto code..."
-	@rm -rf $(OUTPUT_PATH)/proto
-	@rm -rf $(OUTPUT_PATH)/v1
+	@rm -rf $(OUTPUT_PATH)/common
+	@rm -rf $(OUTPUT_PATH)/google
+	@rm -rf $(OUTPUT_PATH)/message
+	@rm -rf $(OUTPUT_PATH)/queue
+	@rm -rf $(OUTPUT_PATH)/queueservice
+	@rm -rf $(OUTPUT_PATH)/schedule
+	@rm -rf $(OUTPUT_PATH)/schema
 	@echo "All generated files removed!"
 
 # Run unit tests
@@ -163,16 +177,25 @@ test-coverage:
 lint:
 	@echo "Running linting checks..."
 	@echo "Checking with flake8..."
-	@poetry run flake8 chronoqueue/ tests/ --max-line-length=120 --exclude=chronoqueue/api/proto --count --statistics || true
+	@poetry run flake8 chronoqueue/ tests/ --max-line-length=120 --count --statistics || true
 	@echo "Checking with mypy..."
 	@poetry run mypy chronoqueue/ || true
 
 # Format code
 format:
 	@echo "Formatting code with black..."
-	@poetry run black chronoqueue/ tests/ --line-length=120 --exclude='chronoqueue/api/proto'
+	@poetry run black chronoqueue/ tests/ --line-length=120 \
+		--exclude='/(common|google|message|queue|queueservice|schedule|schema)/'
 	@echo "Sorting imports with isort..."
-	@poetry run isort chronoqueue/ tests/ --skip chronoqueue/api/proto --profile black --line-length 120
+	@poetry run isort chronoqueue/ tests/ \
+		--skip chronoqueue/api/common \
+		--skip chronoqueue/api/google \
+		--skip chronoqueue/api/message \
+		--skip chronoqueue/api/queue \
+		--skip chronoqueue/api/queueservice \
+		--skip chronoqueue/api/schedule \
+		--skip chronoqueue/api/schema \
+		--profile black --line-length 120
 
 # Type checking
 typecheck:

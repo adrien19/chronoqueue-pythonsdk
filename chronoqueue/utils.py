@@ -1,11 +1,14 @@
 import re
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Callable
 from enum import Enum
-from .api.v1 import chronoqueue_pb2
-from .converters.type_converters import dict_to_protobuf_struct
-from google.protobuf.struct_pb2 import Value
-from .converters.type_converters import string_to_duration
+from google.protobuf.duration_pb2 import Duration
+from google.protobuf.struct_pb2 import Value, Struct
+from google.protobuf import json_format
+from .api.message.v1.message_pb2 import Message
+from .api.queue.v1.queue_pb2 import QueueType
+from .api.common.v1.common_pb2 import Payload
+from .api.queueservice.v1.request_response_pb2 import PostMessageRequest
 
 
 @dataclass
@@ -41,12 +44,42 @@ class MessageState(Enum):
     ERRORED : MessageState
         An error occurred during message processing.
     """
-    INVISIBLE = chronoqueue_pb2.Message.Metadata.State.INVISIBLE
-    PENDING = chronoqueue_pb2.Message.Metadata.State.PENDING
-    RUNNING = chronoqueue_pb2.Message.Metadata.State.RUNNING
-    COMPLETED = chronoqueue_pb2.Message.Metadata.State.COMPLETED
-    CANCELED = chronoqueue_pb2.Message.Metadata.State.CANCELED
-    ERRORED = chronoqueue_pb2.Message.Metadata.State.ERRORED
+    INVISIBLE = Message.Metadata.State.INVISIBLE
+    PENDING = Message.Metadata.State.PENDING
+    RUNNING = Message.Metadata.State.RUNNING
+    COMPLETED = Message.Metadata.State.COMPLETED
+    CANCELED = Message.Metadata.State.CANCELED
+    ERRORED = Message.Metadata.State.ERRORED
+
+
+def string_to_duration(s: str) -> Duration:
+    """
+    Convert a string representation of duration to a protobuf Duration object.
+    
+    Args:
+        s: Duration string in format "[number]unit" (e.g., "5s", "2m", "3h", "1d")
+        
+    Returns:
+        Duration: Protobuf Duration object
+    """
+    if not s:
+        return Duration(seconds=0)
+    
+    unit_map = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
+    match = re.match(r'^(\d+(?:\.\d+)?)([smhd])$', s)
+    if not match:
+        raise ValueError(f"Invalid duration format: {s}")
+    
+    value, unit = match.groups()
+    seconds = float(value) * unit_map[unit]
+    return Duration(seconds=int(seconds), nanos=int((seconds % 1) * 1e9))
+
+
+def dict_to_protobuf_struct(data: Dict[str, Any]) -> Struct:
+    """Convert a Python dict to a protobuf Struct."""
+    struct = Struct()
+    struct.update(data)
+    return struct
 
 
 @dataclass
@@ -72,7 +105,7 @@ class PostMessageOptions:
         Metadata associated with the message's payload.
     """
     priority: int = 0
-    state: MessageState = chronoqueue_pb2.Message.Metadata.State.INVISIBLE
+    state: MessageState = MessageState.INVISIBLE
     lease_duration: str = "0s"
     invisibility_duration: str = "0s"
     attempts_left: int = 3
@@ -173,8 +206,8 @@ class QueueType(Enum):
     EXCLUSIVE : QueueType
         An exclusive queue type that supports specific features such as unique messages.
     """
-    SIMPLE = chronoqueue_pb2.Queue.Options.Type.SIMPLE
-    EXCLUSIVE = chronoqueue_pb2.Queue.Options.Type.EXCLUSIVE
+    SIMPLE = 0
+    EXCLUSIVE = 1
 
 @dataclass
 class QueueOptions:
@@ -214,7 +247,7 @@ class QueueOptions:
             raise ValueError("invisibility_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
 
 
-def _create_post_message_request(params: PostMessageParams) -> chronoqueue_pb2.PostMessageRequest:
+def _create_post_message_request(params: PostMessageParams) -> PostMessageRequest:
     """
     Creates a PostMessageRequest object given options.
 
@@ -225,33 +258,32 @@ def _create_post_message_request(params: PostMessageParams) -> chronoqueue_pb2.P
         PostMessageRequest: The populated protobuf request object.
     """
 
-    # Convert Python dict to Struct
     data_struct = dict_to_protobuf_struct(params.data)
 
-    # Convert Python dict to map<string, Value>
-    metadata_map = {k: Value(string_value=v) for k, v in params.options.data_metadata.items()}
+    metadata_map = {}
+    if params.options and params.options.data_metadata:
+        metadata_map = {k: Value(string_value=v) for k, v in params.options.data_metadata.items()}
 
-    # Create the Payload message with the provided data and an empty metadata.
-    payload = chronoqueue_pb2.Payload(metadata=metadata_map, data=data_struct)
+    payload = Payload(metadata=metadata_map, data=data_struct)
 
-    # Create the Message's Metadata using provided options or default values.
-    metadata = chronoqueue_pb2.Message.Metadata(
-        payload=payload,
-        state=params.options.state,
-        lease_duration=string_to_duration(params.options.lease_duration),
-        invisibility_duration=string_to_duration(params.options.invisibility_duration),
-        attempts_left=params.options.attempts_left,
-        priority=params.options.priority,
-    )
+    if params.options:
+        metadata = Message.Metadata(
+            payload=payload,
+            state=params.options.state.value if isinstance(params.options.state, MessageState) else params.options.state,
+            lease_duration=string_to_duration(params.options.lease_duration),
+            invisibility_duration=string_to_duration(params.options.invisibility_duration),
+            attempts_left=params.options.attempts_left,
+            priority=params.options.priority,
+        )
+    else:
+        metadata = Message.Metadata(payload=payload)
 
-    # Create the main Message using provided message_id, options or default values.
-    message = chronoqueue_pb2.Message(
+    message = Message(
         message_id=params.message_id,
         metadata=metadata
     )
 
-    # Finally, create the PostMessageRequest with a default queue_name or from options.
-    post_message_request = chronoqueue_pb2.PostMessageRequest(
+    post_message_request = PostMessageRequest(
         queue_name=params.queue_name,
         message=message
     )
@@ -271,12 +303,12 @@ class ResponseWrapper:
     Args:
         response_protobuf: The gRPC protobuf response object.
             This is the raw response received from the gRPC service.
-        converter_func: A callable that converts the protobuf response to a dictionary.
-            This function should accept a single argument (the protobuf response) and return a dictionary.
+        converter_func: Optional callable that converts the protobuf response to a dictionary.
+            If not provided, uses protobuf's built-in JSON conversion.
 
     """
 
-    def __init__(self, response_protobuf, converter_func):
+    def __init__(self, response_protobuf, converter_func: Optional[Callable] = None):
         """
         Initializes the ResponseWrapper with the provided protobuf response and converter function.
         """
@@ -290,7 +322,10 @@ class ResponseWrapper:
         Returns:
             dict: The converted dictionary representation of the protobuf response.
         """
-        return self._converter_func(response_protobuf=self._response_protobuf)
+        if self._converter_func:
+            return self._converter_func(response_protobuf=self._response_protobuf)
+        else:
+            return json_format.MessageToDict(self._response_protobuf)
 
     def to_proto(self) -> Any:
         """
