@@ -1375,6 +1375,241 @@ class ChronoqueueClient:
             error = RpcOperationError(f"Failed to validate payload due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
+    # Dead Letter Queue Operations
+
+    def get_dlq_messages(self, dlq_name: str, limit: int = 100, error_handler=None) -> ResponseWrapper:
+        """
+        Retrieve messages from a Dead Letter Queue (DLQ).
+
+        Dead Letter Queues store messages that failed processing after exhausting all retry attempts.
+        This method allows you to inspect failed messages for debugging or recovery purposes.
+
+        Parameters:
+        ----------
+        dlq_name : str
+            Name of the Dead Letter Queue to retrieve messages from.
+
+        limit : int, optional
+            Maximum number of messages to retrieve. Default is 100.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the GetDLQMessagesResponse protobuf with list of messages.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If retrieval fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> # Get messages from DLQ
+        >>> response = client.get_dlq_messages("orders_queue_dlq", limit=50)
+        >>> messages = response.to_model()  # GetDLQMessagesResponse
+        >>> print(f"Found {len(messages.messages)} failed messages")
+        >>> for msg in messages.messages:
+        ...     print(f"Message {msg.message_id}: {msg.metadata.state}")
+        """
+        try:
+            request = request_response_pb2.GetDLQMessagesRequest(dlq_name=dlq_name, limit=limit)
+            response = self.stub.GetDLQMessages(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error getting DLQ messages from {dlq_name}: {e.details()}")
+            error = RpcOperationError(f"Failed to get DLQ messages due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def requeue_from_dlq(
+        self, dlq_name: str, message_id: str, target_queue: str = "", error_handler=None
+    ) -> ResponseWrapper:
+        """
+        Move a message from DLQ back to its original queue or a specified target queue.
+
+        This allows recovery of failed messages by requeuing them for another processing attempt.
+        If target_queue is not specified, the message is requeued to its original queue.
+
+        Parameters:
+        ----------
+        dlq_name : str
+            Name of the Dead Letter Queue containing the message.
+
+        message_id : str
+            Unique identifier of the message to requeue.
+
+        target_queue : str, optional
+            Target queue name. If empty, requeues to the message's original queue.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the RequeueFromDLQResponse protobuf with success status.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If requeue operation fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> # Requeue to original queue
+        >>> response = client.requeue_from_dlq("orders_queue_dlq", "msg-123")
+        >>> result = response.to_model()
+        >>> if result.success:
+        ...     print("Message requeued successfully")
+        >>>
+        >>> # Requeue to different queue
+        >>> response = client.requeue_from_dlq(
+        ...     "orders_queue_dlq",
+        ...     "msg-123",
+        ...     target_queue="manual_review_queue"
+        ... )
+        """
+        try:
+            request = request_response_pb2.RequeueFromDLQRequest(
+                dlq_name=dlq_name, message_id=message_id, target_queue=target_queue
+            )
+            response = self.stub.RequeueFromDLQ(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error requeuing message {message_id} from DLQ {dlq_name}: {e.details()}")
+            error = RpcOperationError(f"Failed to requeue from DLQ due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def delete_from_dlq(self, dlq_name: str, message_id: str, error_handler=None) -> ResponseWrapper:
+        """
+        Permanently delete a message from a Dead Letter Queue.
+
+        Use this to remove messages from DLQ after manual inspection or when they are
+        no longer needed. This operation is irreversible.
+
+        Parameters:
+        ----------
+        dlq_name : str
+            Name of the Dead Letter Queue containing the message.
+
+        message_id : str
+            Unique identifier of the message to delete.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the DeleteFromDLQResponse protobuf with success status.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If deletion fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> response = client.delete_from_dlq("orders_queue_dlq", "msg-123")
+        >>> result = response.to_model()
+        >>> if result.success:
+        ...     print("Message permanently deleted from DLQ")
+        """
+        try:
+            request = request_response_pb2.DeleteFromDLQRequest(dlq_name=dlq_name, message_id=message_id)
+            response = self.stub.DeleteFromDLQ(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error deleting message {message_id} from DLQ {dlq_name}: {e.details()}")
+            error = RpcOperationError(f"Failed to delete from DLQ due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def purge_dlq(self, dlq_name: str, error_handler=None) -> ResponseWrapper:
+        """
+        Remove all messages from a Dead Letter Queue.
+
+        This operation permanently deletes all messages in the DLQ. Use with caution
+        as this operation is irreversible and may result in data loss.
+
+        Parameters:
+        ----------
+        dlq_name : str
+            Name of the Dead Letter Queue to purge.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the PurgeDLQResponse protobuf with success status.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If purge operation fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> # Purge all messages from DLQ (use with caution!)
+        >>> response = client.purge_dlq("orders_queue_dlq")
+        >>> result = response.to_model()
+        >>> if result.success:
+        ...     print("All messages purged from DLQ")
+        """
+        try:
+            request = request_response_pb2.PurgeDLQRequest(dlq_name=dlq_name)
+            response = self.stub.PurgeDLQ(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error purging DLQ {dlq_name}: {e.details()}")
+            error = RpcOperationError(f"Failed to purge DLQ due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def get_dlq_stats(self, dlq_name: str, error_handler=None) -> ResponseWrapper:
+        """
+        Retrieve statistics about a Dead Letter Queue.
+
+        Get information about the DLQ including message count and timestamps.
+
+        Parameters:
+        ----------
+        dlq_name : str
+            Name of the Dead Letter Queue to get statistics for.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the GetDLQStatsResponse protobuf with DLQ statistics.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If stats retrieval fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> response = client.get_dlq_stats("orders_queue_dlq")
+        >>> stats = response.to_model()  # GetDLQStatsResponse
+        >>> print(f"DLQ: {stats.name}")
+        >>> print(f"Message count: {stats.message_count}")
+        >>> print(f"Created at: {stats.created_at}")
+        >>> print(f"Updated at: {stats.updated_at}")
+        """
+        try:
+            request = request_response_pb2.GetDLQStatsRequest(dlq_name=dlq_name)
+            response = self.stub.GetDLQStats(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error getting DLQ stats for {dlq_name}: {e.details()}")
+            error = RpcOperationError(f"Failed to get DLQ stats due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
     def close(self, error_handler=None) -> None:
         """
         Gracefully closes the gRPC channel and stops the heartbeat manager.

@@ -350,15 +350,17 @@ if PYDANTIC_AVAILABLE:
                 last_run=timestamp_to_str(proto_schedule.metadata.last_run),
                 created_at=timestamp_to_str(proto_schedule.metadata.created_at),
                 updated_at=timestamp_to_str(proto_schedule.metadata.updated_at),
-                exclusivity_key=proto_schedule.metadata.exclusivity_key
-                if proto_schedule.metadata.exclusivity_key
-                else None,
+                exclusivity_key=(
+                    proto_schedule.metadata.exclusivity_key if proto_schedule.metadata.exclusivity_key else None
+                ),
                 state_message=proto_schedule.metadata.state_message if proto_schedule.metadata.state_message else None,
                 priority=proto_schedule.metadata.priority,
                 max_messages=proto_schedule.metadata.max_messages if proto_schedule.metadata.has_max_messages else None,
-                lease_duration=str(proto_schedule.metadata.lease_duration)
-                if proto_schedule.metadata.HasField("lease_duration")
-                else None,
+                lease_duration=(
+                    str(proto_schedule.metadata.lease_duration)
+                    if proto_schedule.metadata.HasField("lease_duration")
+                    else None
+                ),
                 timezone=proto_schedule.metadata.timezone if proto_schedule.metadata.timezone else None,
                 next_runs=list(proto_schedule.metadata.next_runs),
             )
@@ -778,6 +780,103 @@ if PYDANTIC_AVAILABLE:
                 schema_version=data.get("schema_version", 0),
             )
 
+    # Dead Letter Queue Models
+
+    class GetDLQMessagesResponse(BaseModel):
+        """
+        Response from get_dlq_messages operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::GetDLQMessagesResponse
+        """
+
+        messages: List[Message] = Field(default_factory=list, description="List of messages in DLQ")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from GetDLQMessagesResponse protobuf."""
+            messages = []
+            for msg_proto in proto_response.messages:
+                messages.append(Message.from_proto(msg_proto))
+            return cls(messages=messages)
+
+    class RequeueFromDLQResponse(BaseModel):
+        """
+        Response from requeue_from_dlq operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::RequeueFromDLQResponse
+        """
+
+        success: bool = Field(True, description="Whether requeue succeeded")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from RequeueFromDLQResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(success=data.get("success", True))
+
+    class DeleteFromDLQResponse(BaseModel):
+        """
+        Response from delete_from_dlq operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::DeleteFromDLQResponse
+        """
+
+        success: bool = Field(True, description="Whether deletion succeeded")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from DeleteFromDLQResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(success=data.get("success", True))
+
+    class PurgeDLQResponse(BaseModel):
+        """
+        Response from purge_dlq operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::PurgeDLQResponse
+        """
+
+        success: bool = Field(True, description="Whether purge succeeded")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from PurgeDLQResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(success=data.get("success", True))
+
+    class GetDLQStatsResponse(BaseModel):
+        """
+        Response from get_dlq_stats operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::GetDLQStatsResponse
+        """
+
+        name: str = Field("", description="DLQ name")
+        message_count: int = Field(0, description="Number of messages in DLQ")
+        created_at: Optional[int] = Field(None, description="DLQ creation timestamp")
+        updated_at: Optional[int] = Field(None, description="DLQ last update timestamp")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from GetDLQStatsResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(
+                name=data.get("name", ""),
+                message_count=data.get("message_count", 0),
+                created_at=data.get("created_at"),
+                updated_at=data.get("updated_at"),
+            )
+
 else:
     # Pydantic not available - create placeholder classes
     class CreateQueueResponse:
@@ -942,6 +1041,32 @@ else:
 
         pass
 
+    # DLQ model placeholders
+    class GetDLQMessagesResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class RequeueFromDLQResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class DeleteFromDLQResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class PurgeDLQResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class GetDLQStatsResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
 
 __all__ = [
     "PYDANTIC_AVAILABLE",
@@ -983,4 +1108,10 @@ __all__ = [
     "Schema",
     "SchemaInfo",
     "ValidationError",
+    # DLQ responses
+    "GetDLQMessagesResponse",
+    "RequeueFromDLQResponse",
+    "DeleteFromDLQResponse",
+    "PurgeDLQResponse",
+    "GetDLQStatsResponse",
 ]
