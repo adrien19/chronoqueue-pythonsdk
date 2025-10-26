@@ -1,29 +1,44 @@
 import re
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Callable
 from enum import Enum
-from google.protobuf.duration_pb2 import Duration
-from google.protobuf.struct_pb2 import Value, Struct
+from typing import Any, Callable, Dict, Optional, Type, TypeVar
+
 from google.protobuf import json_format
+from google.protobuf.duration_pb2 import Duration
+from google.protobuf.struct_pb2 import Struct, Value
+
+from .api.common.v1.common_pb2 import Payload
 from .api.message.v1.message_pb2 import Message
 from .api.queue.v1.queue_pb2 import QueueType
-from .api.common.v1.common_pb2 import Payload
 from .api.queueservice.v1.request_response_pb2 import PostMessageRequest
+
+# Import Pydantic models (will handle if not available)
+try:
+    from . import models
+
+    PYDANTIC_AVAILABLE = models.PYDANTIC_AVAILABLE
+except ImportError:
+    PYDANTIC_AVAILABLE = False
+    models = None
+
+T = TypeVar("T")
 
 
 @dataclass
 class TlsConfig:
     """
     TlsConfig represents the configuration required for setting up a secure TLS connection.
-    
+
     Attributes:
         ca_path (str): Path to the Certificate Authority (CA) certificate.
         client_crt_path (str): Path to the client's certificate.
         client_key_path (str): Path to the client's private key.
     """
+
     ca_path: str
     client_crt_path: str
     client_key_path: str
+
 
 class MessageState(Enum):
     """
@@ -44,6 +59,7 @@ class MessageState(Enum):
     ERRORED : MessageState
         An error occurred during message processing.
     """
+
     INVISIBLE = Message.Metadata.State.INVISIBLE
     PENDING = Message.Metadata.State.PENDING
     RUNNING = Message.Metadata.State.RUNNING
@@ -55,21 +71,21 @@ class MessageState(Enum):
 def string_to_duration(s: str) -> Duration:
     """
     Convert a string representation of duration to a protobuf Duration object.
-    
+
     Args:
         s: Duration string in format "[number]unit" (e.g., "5s", "2m", "3h", "1d")
-        
+
     Returns:
         Duration: Protobuf Duration object
     """
     if not s:
         return Duration(seconds=0)
-    
-    unit_map = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
-    match = re.match(r'^(\d+(?:\.\d+)?)([smhd])$', s)
+
+    unit_map = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+    match = re.match(r"^(\d+(?:\.\d+)?)([smhd])$", s)
     if not match:
         raise ValueError(f"Invalid duration format: {s}")
-    
+
     value, unit = match.groups()
     seconds = float(value) * unit_map[unit]
     return Duration(seconds=int(seconds), nanos=int((seconds % 1) * 1e9))
@@ -94,16 +110,17 @@ class PostMessageOptions:
     state : MessageState, optional (default=INVISIBLE)
         Initial state of the message.
     lease_duration : str, optional (default="0s")
-        Duration for which the message should be processed for by a worker. Must be in format "[number]unit", 
+        Duration for which the message should be processed for by a worker. Must be in format "[number]unit",
         for example: "5s", "2m", "3.5m", or "3d".
     invisibility_duration : str, optional (default="0s")
-        Duration for which the message should remain invisible. Must be in format "[number]unit", 
+        Duration for which the message should remain invisible. Must be in format "[number]unit",
         for example: "5s", "2m", "3.5m", or "3d".
     attempts_left : int, optional (default=3)
         Number of processing attempts left for the message.
     data_metadata : Dict, optional
         Metadata associated with the message's payload.
     """
+
     priority: int = 0
     state: MessageState = MessageState.INVISIBLE
     lease_duration: str = "0s"
@@ -135,9 +152,10 @@ class PostMessageParams:
     options : PostMessageOptions, optional
         Optional settings for posting a message. If not provided, defaults will be used.
     """
+
     message_id: str
     data: dict
-    queue_name: str 
+    queue_name: str
     options: Optional[PostMessageOptions] = field(default_factory=PostMessageOptions)
 
 
@@ -155,9 +173,11 @@ class AcknowledgeMessageParams:
     state : MessageState
         Updated state for the message.
     """
+
     message_id: str
     state: MessageState
     queue_name: str = "default_queue"
+
 
 @dataclass
 class MessagePriorityRange:
@@ -171,6 +191,7 @@ class MessagePriorityRange:
     max : str, optional (default="+inf")
         Maximum priority level.
     """
+
     min: str = "-inf"
     max: str = "+inf"
 
@@ -189,6 +210,7 @@ class PeekQueueMessagesParams:
     priority : MessagePriority, optional
         Priority range for filtering the messages.
     """
+
     queue_name: str
     limit: int = 5
     priority_range: Optional[MessagePriorityRange] = field(default_factory=MessagePriorityRange)
@@ -197,17 +219,19 @@ class PeekQueueMessagesParams:
 class QueueType(Enum):
     """
     Enum representing the types of queues that can be created in the Chronoqueue service.
-    
+
     Attributes:
     ----------
     SIMPLE : QueueType
         A standard queue type.
-        
+
     EXCLUSIVE : QueueType
         An exclusive queue type that supports specific features such as unique messages.
     """
+
     SIMPLE = 0
     EXCLUSIVE = 1
+
 
 @dataclass
 class QueueOptions:
@@ -226,15 +250,16 @@ class QueueOptions:
         The number of times a message can be dequeued before it is considered failed.
 
     lease_duration : Optional[str]
-        The duration a message remains leased after being dequeued. Must be in format "[number]unit", 
+        The duration a message remains leased after being dequeued. Must be in format "[number]unit",
         for example: "5s", "2m", "3.5m", or "3d".
 
     invisibility_duration : Optional[str]
         The duration a message remains invisible in the queue before being dequeued. Must be in format "[number]unit",
         for example: "5s", "2m", "3.5m", or "3d".
     """
+
     dequeue_attempts: Optional[int]
-    lease_duration: Optional[str] 
+    lease_duration: Optional[str]
     invisibility_duration: Optional[str]
     type: QueueType = QueueType.SIMPLE
     exclusivity_key: Optional[str] = ""
@@ -269,7 +294,9 @@ def _create_post_message_request(params: PostMessageParams) -> PostMessageReques
     if params.options:
         metadata = Message.Metadata(
             payload=payload,
-            state=params.options.state.value if isinstance(params.options.state, MessageState) else params.options.state,
+            state=params.options.state.value
+            if isinstance(params.options.state, MessageState)
+            else params.options.state,
             lease_duration=string_to_duration(params.options.lease_duration),
             invisibility_duration=string_to_duration(params.options.invisibility_duration),
             attempts_left=params.options.attempts_left,
@@ -278,15 +305,9 @@ def _create_post_message_request(params: PostMessageParams) -> PostMessageReques
     else:
         metadata = Message.Metadata(payload=payload)
 
-    message = Message(
-        message_id=params.message_id,
-        metadata=metadata
-    )
+    message = Message(message_id=params.message_id, metadata=metadata)
 
-    post_message_request = PostMessageRequest(
-        queue_name=params.queue_name,
-        message=message
-    )
+    post_message_request = PostMessageRequest(queue_name=params.queue_name, message=message)
 
     return post_message_request
 
@@ -294,11 +315,15 @@ def _create_post_message_request(params: PostMessageParams) -> PostMessageReques
 class ResponseWrapper:
     """
     A wrapper for gRPC protobuf responses that provides utility methods for converting
-    the response to other formats, such as a dictionary, and for accessing the raw protobuf response.
+    the response to other formats, such as a dictionary, Pydantic model, and for accessing
+    the raw protobuf response.
 
-    The ResponseWrapper acts as a bridge between the raw gRPC protobuf response and a more
-    user-friendly dictionary format. The provided converter function will be used to transform
-    the protobuf response into a dictionary when needed.
+    The ResponseWrapper acts as a bridge between the raw gRPC protobuf response and more
+    user-friendly formats. It supports three output modes:
+
+    1. `.to_dict()` - Returns an untyped dictionary (legacy, always available)
+    2. `.to_proto()` - Returns the raw protobuf object (for advanced use)
+    3. `.to_model()` - Returns a typed Pydantic model (requires pydantic package)
 
     Args:
         response_protobuf: The gRPC protobuf response object.
@@ -306,7 +331,19 @@ class ResponseWrapper:
         converter_func: Optional callable that converts the protobuf response to a dictionary.
             If not provided, uses protobuf's built-in JSON conversion.
 
+    Example:
+        >>> response = client.get_next_message("my_queue", "5m")
+        >>> # Legacy dict approach
+        >>> data = response.to_dict()
+        >>> msg_id = data.get("message", {}).get("messageId")
+        >>>
+        >>> # New typed model approach (requires pydantic)
+        >>> msg = response.to_model()  # Returns GetNextMessageResponse
+        >>> msg_id = msg.message.message_id  # Full IDE autocomplete!
     """
+
+    # Map protobuf response types to Pydantic model classes
+    _MODEL_MAP = {}
 
     def __init__(self, response_protobuf, converter_func: Optional[Callable] = None):
         """
@@ -315,12 +352,34 @@ class ResponseWrapper:
         self._response_protobuf = response_protobuf
         self._converter_func = converter_func
 
+        # Lazy-load model map when first instance is created
+        if not ResponseWrapper._MODEL_MAP and PYDANTIC_AVAILABLE:
+            ResponseWrapper._MODEL_MAP = {
+                "CreateQueueResponse": models.CreateQueueResponse,
+                "DeleteQueueResponse": models.DeleteQueueResponse,
+                "PostMessageResponse": models.PostMessageResponse,
+                "GetNextMessageResponse": models.GetNextMessageResponse,
+                "AcknowledgeMessageResponse": models.AcknowledgeMessageResponse,
+                "RenewMessageLeaseResponse": models.RenewMessageLeaseResponse,
+                "PeekQueueMessagesResponse": models.PeekQueueMessagesResponse,
+                "GetQueueStateResponse": models.GetQueueStateResponse,
+                "SendMessageHeartBeatResponse": models.SendMessageHeartBeatResponse,
+            }
+
     def to_dict(self) -> Dict:
         """
         Converts the wrapped protobuf response to a dictionary using the provided converter function.
 
+        This is the legacy output format - returns an untyped dictionary. For better type safety
+        and IDE support, consider using `.to_model()` instead (requires pydantic).
+
         Returns:
             dict: The converted dictionary representation of the protobuf response.
+
+        Example:
+            >>> response = client.create_queue("my_queue")
+            >>> data = response.to_dict()
+            >>> success = data.get("success")  # No type hints
         """
         if self._converter_func:
             return self._converter_func(response_protobuf=self._response_protobuf)
@@ -331,10 +390,86 @@ class ResponseWrapper:
         """
         Retrieves the raw gRPC protobuf response.
 
+        Use this when you need to access protobuf-specific functionality or pass
+        the response to other protobuf-aware code.
+
         Returns:
             The raw gRPC protobuf response object.
+
+        Example:
+            >>> response = client.get_next_message("my_queue", "5m")
+            >>> proto_msg = response.to_proto()
+            >>> # Access protobuf methods
+            >>> proto_msg.HasField("message")
         """
         return self._response_protobuf
+
+    def to_model(self, model_class: Optional[Type[T]] = None) -> T:
+        """
+        Converts the response to a typed Pydantic model for better IDE support and validation.
+
+        This method provides a type-safe interface to access response data with full
+        IDE autocomplete support. The model class is auto-detected based on the response
+        type, or you can specify it explicitly.
+
+        Args:
+            model_class: Optional Pydantic model class to use for conversion.
+                        If not provided, auto-detects based on response type.
+
+        Returns:
+            A Pydantic model instance with type hints and validation.
+
+        Raises:
+            ImportError: If pydantic is not installed.
+            ValueError: If no Pydantic model is registered for this response type.
+
+        Example:
+            >>> # Auto-detect model type
+            >>> response = client.get_next_message("my_queue", "5m")
+            >>> msg = response.to_model()  # Returns GetNextMessageResponse
+            >>> print(msg.message.message_id)  # Full type hints!
+            >>>
+            >>> # Explicit model type
+            >>> from chronoqueue.models import GetNextMessageResponse
+            >>> msg = response.to_model(GetNextMessageResponse)
+            >>>
+            >>> # Export to JSON with validation
+            >>> json_str = msg.model_dump_json()
+            >>> dict_data = msg.model_dump()
+
+        Note:
+            Requires pydantic to be installed:
+            ```bash
+            pip install chronoqueue[pydantic]
+            # or
+            pip install pydantic
+            ```
+        """
+        if not PYDANTIC_AVAILABLE:
+            raise ImportError(
+                "Pydantic is required for .to_model(). "
+                "Install it with: pip install chronoqueue[pydantic] or pip install pydantic\n"
+                "Alternatively, use .to_dict() for untyped dictionary output."
+            )
+
+        if model_class is None:
+            # Auto-detect model class based on protobuf type
+            proto_type_name = type(self._response_protobuf).__name__
+            model_class = self._MODEL_MAP.get(proto_type_name)
+
+            if model_class is None:
+                available_types = ", ".join(sorted(self._MODEL_MAP.keys()))
+                raise ValueError(
+                    f"No Pydantic model registered for response type '{proto_type_name}'.\n"
+                    f"Available types: {available_types}\n"
+                    f"You can either:\n"
+                    f"  1. Use .to_dict() for dictionary output\n"
+                    f"  2. Specify model_class explicitly: .to_model(YourModel)\n"
+                    f"  3. Request this model type to be added to chronoqueue"
+                )
+
+        # Convert using the model's from_proto method
+        return model_class.from_proto(self._response_protobuf)
 
     def __getattr__(self, name):
         """
@@ -346,5 +481,10 @@ class ResponseWrapper:
 
         Returns:
             The value of the specified attribute in the wrapped protobuf response.
+
+        Example:
+            >>> response = client.create_queue("my_queue")
+            >>> # Direct attribute access (delegates to protobuf)
+            >>> success = response.success
         """
         return getattr(self._response_protobuf, name)

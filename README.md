@@ -34,6 +34,16 @@ To install the Chronoqueue Python SDK, you can use pip:
 pip install chronoqueue-sdk
 ```
 
+### Optional: Install with Pydantic Support
+
+For better type safety and IDE autocomplete, install with Pydantic:
+
+```bash
+pip install chronoqueue-sdk[pydantic]
+# or
+pip install chronoqueue-sdk pydantic
+```
+
 Ensure you also hvr `grcpcio`installed:
 ```bash
 pip install grpcio
@@ -124,17 +134,64 @@ from chronoqueue import ChronoqueueClient
 client = ChronoqueueClient(host='localhost', port=50051, use_tls=True, cert_path='path/to/your/certificate.pem')
 ```
 
+### Working with Responses
+
+The SDK provides two ways to work with responses:
+
+#### Option 1: Dictionary Output (Legacy, Always Available)
+
+```python
+response = client.get_next_message("my_queue", "5m")
+data = response.to_dict()  # Returns Dict[str, Any]
+msg_id = data.get("message", {}).get("messageId")  # No type hints
+```
+
+#### Option 2: Typed Pydantic Models (Recommended, Requires Pydantic)
+
+```python
+response = client.get_next_message("my_queue", "5m")
+msg = response.to_model()  # Returns GetNextMessageResponse (fully typed!)
+
+# Full IDE autocomplete and type checking
+print(msg.message.message_id)  # Type: str
+print(msg.message.metadata.state)  # Type: str
+print(msg.message.metadata.payload.data)  # Type: Dict[str, Any]
+
+# Easy serialization
+json_str = msg.model_dump_json()  # Convert to JSON string
+dict_data = msg.model_dump()  # Convert to dict with validation
+```
+
+**Benefits of Pydantic models:**
+- ✅ Full IDE autocomplete
+- ✅ Type checking with mypy/pylance
+- ✅ Data validation
+- ✅ Easy JSON serialization
+- ✅ Better developer experience
+
 ### Interacting with Queues
 With the client, you can interact with the Chronoqueue service:
 
 * Creating a Queue:
     ```python
     response = client.create_queue(name="my_queue")
+    
+    # Legacy dict approach
+    success = response.to_dict().get("success")
+    
+    # Typed model approach (requires pydantic)
+    result = response.to_model()
+    success = result.success  # IDE knows this is bool
     ```
 
 * Delete a Queue:
     ```python
     response = client.delete_queue(name="my_queue")
+    
+    # With Pydantic
+    result = response.to_model()
+    if result.success:
+        print("Queue deleted successfully")
     ```
 
 * Post a Message:
@@ -142,30 +199,134 @@ With the client, you can interact with the Chronoqueue service:
     from chronoqueue.utils import PostMessageParams
     msg_params = PostMessageParams(message_id="12345", data={"key": "value"}, queue_name="my_queue")
     response = client.post_message(msg_params)
+    
+    # With Pydantic
+    result = response.to_model()
+    print(f"Message posted: {result.success}")
+    ```
+
+* Get Next Message:
+    ```python
+    response = client.get_next_message("my_queue", lease_duration="5m")
+    
+    # With Pydantic - full type safety
+    result = response.to_model()
+    if result.message:
+        print(f"Message ID: {result.message.message_id}")
+        print(f"State: {result.message.metadata.state}")
+        print(f"Data: {result.message.metadata.payload.data}")
+    else:
+        print("Queue is empty")
+    ```
+
+* Peek Queue Messages:
+    ```python
+    from chronoqueue.utils import PeekQueueMessagesParams
+    params = PeekQueueMessagesParams(queue_name="my_queue", limit=10)
+    response = client.peek_queue_messages(params)
+    
+    # With Pydantic
+    result = response.to_model()
+    for msg in result.messages:
+        print(f"Message {msg.message_id}: {msg.metadata.payload.data}")
+    ```
+
+* Get Queue State:
+    ```python
+    response = client.get_queue_state("my_queue")
+    
+    # With Pydantic
+    state = response.to_model()
+    print(f"Pending: {state.state_counts.get('PENDING', 0)}")
+    print(f"Running: {state.state_counts.get('RUNNING', 0)}")
+    print(f"Completed: {state.state_counts.get('COMPLETED', 0)}")
     ```
 
 ## Example 
-Here's a simple example demonstrating how to use the SDK in another Python project:
+Here's a comprehensive example demonstrating how to use the SDK:
 
 ```python
 from chronoqueue import ChronoqueueClient
+from chronoqueue.utils import PostMessageParams, PostMessageOptions, MessageState
 
 # Create a client instance
-client = ChronoqueueClient(host='localhost', port=50051, use_tls=True, cert_path='path/to/your/certificate.pem')
+client = ChronoqueueClient(host='localhost', port=50051, use_tls=False)
 
 # Create a new queue
 response = client.create_queue(name="test_queue")
-print(f"Queue created with response: {response}")
+print(f"Queue created: {response.to_model().success}")
 
 # Post a message to the queue
-msg_params = PostMessageParams(message_id="12345", data={"greetings": "Hello, Chronoqueue!"}, queue_name="test_queue")
-message_response = client.post_message(msg_params)
-print(f"Message posted with response: {message_response}")
+msg_params = PostMessageParams(
+    message_id="12345",
+    data={"task": "process_data", "priority": "high"},
+    queue_name="test_queue",
+    options=PostMessageOptions(priority=10)
+)
+response = client.post_message(msg_params)
+print(f"Message posted: {response.to_model().success}")
+
+# Get next message (with type safety using Pydantic)
+response = client.get_next_message("test_queue", lease_duration="5m")
+msg = response.to_model()
+
+if msg.message:
+    print(f"Processing message: {msg.message.message_id}")
+    print(f"Data: {msg.message.metadata.payload.data}")
+    
+    # Acknowledge the message
+    from chronoqueue.utils import AcknowledgeMessageParams
+    ack_params = AcknowledgeMessageParams(
+        message_id=msg.message.message_id,
+        queue_name="test_queue",
+        state=MessageState.COMPLETED
+    )
+    ack_response = client.acknowledge_message(ack_params)
+    print(f"Message acknowledged: {ack_response.to_model().success}")
+else:
+    print("No messages in queue")
+
+# Check queue state
+state_response = client.get_queue_state("test_queue")
+state = state_response.to_model()
+print(f"Queue state: {state.state_counts}")
 
 # Clean up by deleting the queue
 delete_response = client.delete_queue(name="test_queue")
-print(f"Queue deleted with response: {delete_response}")
+print(f"Queue deleted: {delete_response.to_model().success}")
 
+# Close the client
+client.close()
+```
+
+### Legacy Dictionary Example (Without Pydantic)
+
+If you prefer to work with dictionaries instead of typed models:
+
+```python
+from chronoqueue import ChronoqueueClient
+from chronoqueue.utils import PostMessageParams
+
+client = ChronoqueueClient(host='localhost', port=50051, use_tls=False)
+
+# Create queue - using .to_dict()
+response = client.create_queue(name="test_queue")
+data = response.to_dict()
+print(f"Queue created: {data.get('success')}")
+
+# Post message
+msg_params = PostMessageParams(message_id="123", data={"key": "value"}, queue_name="test_queue")
+response = client.post_message(msg_params)
+print(f"Message posted: {response.to_dict().get('success')}")
+
+# Get message - using .to_dict()
+response = client.get_next_message("test_queue", "5m")
+msg_dict = response.to_dict()
+if msg_dict.get("message"):
+    message_id = msg_dict["message"]["messageId"]
+    print(f"Got message: {message_id}")
+
+client.close()
 ```
 
 ## Pytest
