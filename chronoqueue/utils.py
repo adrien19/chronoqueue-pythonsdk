@@ -411,9 +411,9 @@ def _create_post_message_request(params: PostMessageParams) -> PostMessageReques
     if params.options:
         metadata = Message.Metadata(
             payload=payload,
-            state=params.options.state.value
-            if isinstance(params.options.state, MessageState)
-            else params.options.state,
+            state=(
+                params.options.state.value if isinstance(params.options.state, MessageState) else params.options.state
+            ),
             lease_duration=string_to_duration(params.options.lease_duration),
             invisibility_duration=string_to_duration(params.options.invisibility_duration),
             attempts_left=params.options.attempts_left,
@@ -498,6 +498,12 @@ class ResponseWrapper:
                 "ListSchemasResponse": models.ListSchemasResponse,
                 "DeleteSchemaResponse": models.DeleteSchemaResponse,
                 "ValidatePayloadResponse": models.ValidatePayloadResponse,
+                # DLQ responses
+                "GetDLQMessagesResponse": models.GetDLQMessagesResponse,
+                "RequeueFromDLQResponse": models.RequeueFromDLQResponse,
+                "DeleteFromDLQResponse": models.DeleteFromDLQResponse,
+                "PurgeDLQResponse": models.PurgeDLQResponse,
+                "GetDLQStatsResponse": models.GetDLQStatsResponse,
             }
 
     def to_dict(self) -> Dict:
