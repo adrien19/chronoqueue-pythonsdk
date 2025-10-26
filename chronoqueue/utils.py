@@ -359,6 +359,36 @@ class ScheduleOptions:
                 raise ValueError("lease_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
 
 
+@dataclass
+class SchemaOptions:
+    """
+    Data class representing the options for registering a schema in the Chronoqueue service.
+
+    Attributes:
+    ----------
+    name : str
+        Human-readable schema name.
+
+    description : str
+        Schema description.
+
+    content : str
+        JSON Schema content (as a string).
+
+    content_type : str, default="json-schema"
+        Schema type (e.g., "json-schema").
+
+    metadata : Optional[dict]
+        Additional metadata as key-value pairs.
+    """
+
+    name: str
+    description: str
+    content: str
+    content_type: str = "json-schema"
+    metadata: Optional[dict] = field(default_factory=dict)
+
+
 def _create_post_message_request(params: PostMessageParams) -> PostMessageRequest:
     """
     Creates a PostMessageRequest object given options.
@@ -462,6 +492,12 @@ class ResponseWrapper:
                 "ResumeScheduleResponse": models.ResumeScheduleResponse,
                 "ValidateCalendarScheduleResponse": models.ValidateCalendarScheduleResponse,
                 "PreviewCalendarScheduleResponse": models.PreviewCalendarScheduleResponse,
+                # Schema responses
+                "RegisterSchemaResponse": models.RegisterSchemaResponse,
+                "GetSchemaResponse": models.GetSchemaResponse,
+                "ListSchemasResponse": models.ListSchemasResponse,
+                "DeleteSchemaResponse": models.DeleteSchemaResponse,
+                "ValidatePayloadResponse": models.ValidatePayloadResponse,
             }
 
     def to_dict(self) -> Dict:

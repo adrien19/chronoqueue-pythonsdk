@@ -15,6 +15,7 @@ from .api.message.v1.message_pb2 import Message
 from .api.queue.v1 import queue_pb2
 from .api.queueservice.v1 import request_response_pb2, service_pb2_grpc
 from .api.schedule.v1 import schedule_pb2
+from .api.schema.v1 import schema_pb2
 from .exceptions import InitializationError, RpcOperationError
 from .utils import (
     AcknowledgeMessageParams,
@@ -23,6 +24,7 @@ from .utils import (
     QueueOptions,
     ResponseWrapper,
     ScheduleOptions,
+    SchemaOptions,
     TlsConfig,
     _create_post_message_request,
     dict_to_protobuf_struct,
@@ -1117,6 +1119,260 @@ class ChronoqueueClient:
         except grpc.RpcError as e:
             logging.error(f"Error previewing calendar schedule: {e.details()}")
             error = RpcOperationError(f"Failed to preview calendar schedule due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    # Schema Operations
+
+    def register_schema(self, schema_id: str, options: SchemaOptions, error_handler=None) -> ResponseWrapper:
+        """
+        Register a new schema or create a new version of an existing schema.
+
+        Schemas are used to validate message payloads before they are posted to queues.
+        Supports JSON Schema format for defining validation rules.
+
+        Parameters:
+        ----------
+        schema_id : str
+            Unique identifier for the schema.
+
+        options : SchemaOptions
+            Configuration options for the schema including name, description, and content.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the RegisterSchemaResponse protobuf with schema_id and version.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If schema registration fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> from chronoqueue.utils import SchemaOptions
+        >>> options = SchemaOptions(
+        ...     name="Order Schema",
+        ...     description="Validation schema for order messages",
+        ...     content='{"type": "object", "properties": {"orderId": {"type": "string"}}}',
+        ...     content_type="json-schema",
+        ...     metadata={"version": "1.0", "author": "team"}
+        ... )
+        >>> response = client.register_schema("order_schema", options)
+        >>> result = response.to_model()
+        >>> print(f"Schema {result.schema_id} registered with version {result.version}")
+        """
+        try:
+            request = request_response_pb2.RegisterSchemaRequest(
+                schema_id=schema_id,
+                name=options.name,
+                description=options.description,
+                content=options.content,
+                content_type=options.content_type,
+                metadata=options.metadata if options.metadata else {},
+            )
+            response = self.stub.RegisterSchema(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error registering schema {schema_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to register schema due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def get_schema(self, schema_id: str, version: int = 0, error_handler=None) -> ResponseWrapper:
+        """
+        Retrieve a schema by ID and optional version.
+
+        Parameters:
+        ----------
+        schema_id : str
+            Unique identifier of the schema to retrieve.
+
+        version : int, optional
+            Schema version to retrieve. If 0 (default), retrieves the latest version.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the GetSchemaResponse protobuf with full schema details.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If schema retrieval fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> # Get latest version
+        >>> response = client.get_schema("order_schema")
+        >>> schema = response.to_model()
+        >>> print(f"Schema: {schema.schema.name}")
+        >>> print(f"Version: {schema.schema.version}")
+        >>> print(f"Content: {schema.schema.content}")
+        >>>
+        >>> # Get specific version
+        >>> response = client.get_schema("order_schema", version=2)
+        """
+        try:
+            request = request_response_pb2.GetSchemaRequest(schema_id=schema_id, version=version)
+            response = self.stub.GetSchema(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error getting schema {schema_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to get schema due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def list_schemas(
+        self, prefix: str = "", limit: int = 100, active_only: bool = False, error_handler=None
+    ) -> ResponseWrapper:
+        """
+        List all schemas with optional filtering.
+
+        Returns a summary view of schemas with aggregated version information.
+
+        Parameters:
+        ----------
+        prefix : str, optional
+            Filter to only return schemas with IDs starting with this prefix.
+            If empty (default), returns all schemas.
+
+        limit : int, optional
+            Maximum number of results to return. Default is 100.
+
+        active_only : bool, optional
+            If True, only return active schemas. Default is False.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the ListSchemasResponse protobuf with list of schema summaries.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If listing fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> # List all schemas
+        >>> response = client.list_schemas()
+        >>> schemas = response.to_model()
+        >>> for schema in schemas.schemas:
+        ...     print(f"{schema.schema_id}: {schema.name} (v{schema.latest_version})")
+        >>>
+        >>> # Filter by prefix
+        >>> response = client.list_schemas(prefix="order_", active_only=True)
+        """
+        try:
+            request = request_response_pb2.ListSchemasRequest(prefix=prefix, limit=limit, active_only=active_only)
+            response = self.stub.ListSchemas(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error listing schemas: {e.details()}")
+            error = RpcOperationError(f"Failed to list schemas due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def delete_schema(self, schema_id: str, version: int = 0, error_handler=None) -> ResponseWrapper:
+        """
+        Delete a schema or specific schema version.
+
+        Parameters:
+        ----------
+        schema_id : str
+            Unique identifier of the schema to delete.
+
+        version : int, optional
+            Schema version to delete. If 0 (default), deletes all versions.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the DeleteSchemaResponse protobuf with deletion result.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If deletion fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> # Delete specific version
+        >>> response = client.delete_schema("order_schema", version=1)
+        >>> result = response.to_model()
+        >>> print(f"Deleted {result.versions_deleted} version(s)")
+        >>>
+        >>> # Delete all versions
+        >>> response = client.delete_schema("order_schema")
+        """
+        try:
+            request = request_response_pb2.DeleteSchemaRequest(schema_id=schema_id, version=version)
+            response = self.stub.DeleteSchema(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error deleting schema {schema_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to delete schema due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def validate_payload(self, schema_id: str, payload: str, version: int = 0, error_handler=None) -> ResponseWrapper:
+        """
+        Validate a JSON payload against a schema.
+
+        Checks whether the provided payload conforms to the schema's validation rules.
+
+        Parameters:
+        ----------
+        schema_id : str
+            Unique identifier of the schema to validate against.
+
+        payload : str
+            JSON payload to validate (as a string).
+
+        version : int, optional
+            Schema version to use for validation. If 0 (default), uses latest version.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the ValidatePayloadResponse protobuf with validation result.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If validation request fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> import json
+        >>> payload = json.dumps({"orderId": "12345", "amount": 99.99})
+        >>> response = client.validate_payload("order_schema", payload)
+        >>> result = response.to_model()
+        >>> if result.valid:
+        ...     print("Payload is valid")
+        ... else:
+        ...     for error in result.errors:
+        ...         print(f"Error in {error.field}: {error.message}")
+        """
+        try:
+            request = request_response_pb2.ValidatePayloadRequest(schema_id=schema_id, version=version, payload=payload)
+            response = self.stub.ValidatePayload(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error validating payload against schema {schema_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to validate payload due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
     def close(self, error_handler=None) -> None:

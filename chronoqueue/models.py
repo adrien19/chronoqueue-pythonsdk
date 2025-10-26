@@ -570,6 +570,214 @@ if PYDANTIC_AVAILABLE:
             data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
             return cls(execution_times=data.get("execution_times", []))
 
+    # Schema Models
+
+    class Schema(BaseModel):
+        """
+        A schema definition for message validation.
+
+        Proto source: proto/schema/v1/schema.proto::Schema
+        """
+
+        schema_id: str = Field(..., description="Unique schema identifier")
+        version: int = Field(..., description="Schema version number")
+        name: str = Field(..., description="Human-readable schema name")
+        description: str = Field(..., description="Schema description")
+        content: str = Field(..., description="JSON Schema content")
+        content_type: str = Field(..., description="Schema type (e.g., json-schema)")
+        created_at: Optional[int] = Field(None, description="Creation timestamp (Unix milliseconds)")
+        updated_at: Optional[int] = Field(None, description="Last update timestamp (Unix milliseconds)")
+        is_active: bool = Field(False, description="Whether this schema version is active")
+        metadata: Dict[str, str] = Field(default_factory=dict, description="Additional metadata")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_schema):
+            """Create from Schema protobuf."""
+            data = json_format.MessageToDict(proto_schema, preserving_proto_field_name=True)
+            return cls(
+                schema_id=data.get("schema_id", ""),
+                version=data.get("version", 0),
+                name=data.get("name", ""),
+                description=data.get("description", ""),
+                content=data.get("content", ""),
+                content_type=data.get("content_type", "json-schema"),
+                created_at=data.get("created_at"),
+                updated_at=data.get("updated_at"),
+                is_active=data.get("is_active", False),
+                metadata=data.get("metadata", {}),
+            )
+
+    class SchemaInfo(BaseModel):
+        """
+        Summary information about a schema (used in list responses).
+
+        Proto source: proto/queueservice/v1/request_response.proto::SchemaInfo
+        """
+
+        schema_id: str = Field(..., description="Unique schema identifier")
+        latest_version: int = Field(..., description="Latest version number")
+        name: str = Field(..., description="Schema name")
+        description: str = Field(..., description="Schema description")
+        created_at: Optional[int] = Field(None, description="Creation timestamp")
+        updated_at: Optional[int] = Field(None, description="Last update timestamp")
+        version_count: int = Field(0, description="Total number of versions")
+        is_active: bool = Field(False, description="Whether schema is active")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_schema_info):
+            """Create from SchemaInfo protobuf."""
+            data = json_format.MessageToDict(proto_schema_info, preserving_proto_field_name=True)
+            return cls(
+                schema_id=data.get("schema_id", ""),
+                latest_version=data.get("latest_version", 0),
+                name=data.get("name", ""),
+                description=data.get("description", ""),
+                created_at=data.get("created_at"),
+                updated_at=data.get("updated_at"),
+                version_count=data.get("version_count", 0),
+                is_active=data.get("is_active", False),
+            )
+
+    class ValidationError(BaseModel):
+        """
+        Detailed validation error information.
+
+        Proto source: proto/schema/v1/schema.proto::ValidationError
+        """
+
+        field: str = Field(..., description="Field path (e.g., 'payload.data.orderId')")
+        error_code: str = Field(..., description="Error code (e.g., REQUIRED_FIELD_MISSING)")
+        message: str = Field(..., description="Human-readable error message")
+        details: Dict[str, str] = Field(default_factory=dict, description="Additional error details")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_error):
+            """Create from ValidationError protobuf."""
+            data = json_format.MessageToDict(proto_error, preserving_proto_field_name=True)
+            return cls(
+                field=data.get("field", ""),
+                error_code=data.get("error_code", ""),
+                message=data.get("message", ""),
+                details=data.get("details", {}),
+            )
+
+    class RegisterSchemaResponse(BaseModel):
+        """
+        Response from register_schema operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::RegisterSchemaResponse
+        """
+
+        schema_id: str = Field(..., description="Schema identifier")
+        version: int = Field(..., description="Assigned schema version")
+        created_at: Optional[int] = Field(None, description="Creation timestamp")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from RegisterSchemaResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(
+                schema_id=data.get("schema_id", ""),
+                version=data.get("version", 0),
+                created_at=data.get("created_at"),
+            )
+
+    class GetSchemaResponse(BaseModel):
+        """
+        Response from get_schema operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::GetSchemaResponse
+        """
+
+        schema: Optional[Schema] = Field(None, description="Full schema object")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from GetSchemaResponse protobuf."""
+            schema = None
+            if proto_response.HasField("schema"):
+                schema = Schema.from_proto(proto_response.schema)
+            return cls(schema=schema)
+
+    class ListSchemasResponse(BaseModel):
+        """
+        Response from list_schemas operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::ListSchemasResponse
+        """
+
+        schemas: List[SchemaInfo] = Field(default_factory=list, description="List of schema summaries")
+        total_count: int = Field(0, description="Total number of schemas")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from ListSchemasResponse protobuf."""
+            schemas = []
+            for schema_info_proto in proto_response.schemas:
+                schemas.append(SchemaInfo.from_proto(schema_info_proto))
+
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(schemas=schemas, total_count=data.get("total_count", 0))
+
+    class DeleteSchemaResponse(BaseModel):
+        """
+        Response from delete_schema operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::DeleteSchemaResponse
+        """
+
+        success: bool = Field(True, description="Whether deletion succeeded")
+        versions_deleted: int = Field(0, description="Number of versions deleted")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from DeleteSchemaResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(success=data.get("success", True), versions_deleted=data.get("versions_deleted", 0))
+
+    class ValidatePayloadResponse(BaseModel):
+        """
+        Response from validate_payload operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::ValidatePayloadResponse
+        """
+
+        valid: bool = Field(False, description="Whether validation passed")
+        errors: List[ValidationError] = Field(default_factory=list, description="List of validation errors")
+        schema_id: str = Field("", description="Schema used for validation")
+        schema_version: int = Field(0, description="Schema version used")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from ValidatePayloadResponse protobuf."""
+            errors = []
+            for error_proto in proto_response.errors:
+                errors.append(ValidationError.from_proto(error_proto))
+
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(
+                valid=data.get("valid", False),
+                errors=errors,
+                schema_id=data.get("schema_id", ""),
+                schema_version=data.get("schema_version", 0),
+            )
+
 else:
     # Pydantic not available - create placeholder classes
     class CreateQueueResponse:
@@ -693,6 +901,47 @@ else:
 
         pass
 
+    # Schema model placeholders
+    class Schema:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class SchemaInfo:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class ValidationError:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class RegisterSchemaResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class GetSchemaResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class ListSchemasResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class DeleteSchemaResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class ValidatePayloadResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
 
 __all__ = [
     "PYDANTIC_AVAILABLE",
@@ -724,4 +973,14 @@ __all__ = [
     "Schedule",
     "ScheduleMetadata",
     "ScheduleHistoryEntry",
+    # Schema responses
+    "RegisterSchemaResponse",
+    "GetSchemaResponse",
+    "ListSchemasResponse",
+    "DeleteSchemaResponse",
+    "ValidatePayloadResponse",
+    # Schema models
+    "Schema",
+    "SchemaInfo",
+    "ValidationError",
 ]
