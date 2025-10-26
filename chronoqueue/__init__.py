@@ -32,6 +32,7 @@ from .utils import (
     ResponseWrapper,
     ScheduleOptions,
     ScheduleState,
+    SchemaOptions,
     TlsConfig,
 )
 
@@ -44,11 +45,14 @@ try:
         CreateScheduleResponse,
         DeleteQueueResponse,
         DeleteScheduleResponse,
+        DeleteSchemaResponse,
         GetNextMessageResponse,
         GetQueueStateResponse,
         GetScheduleHistoryResponse,
         GetScheduleResponse,
+        GetSchemaResponse,
         ListSchedulesResponse,
+        ListSchemasResponse,
         Message,
         MessageMetadata,
         MessagePayload,
@@ -56,13 +60,18 @@ try:
         PeekQueueMessagesResponse,
         PostMessageResponse,
         PreviewCalendarScheduleResponse,
+        RegisterSchemaResponse,
         RenewMessageLeaseResponse,
         ResumeScheduleResponse,
         Schedule,
         ScheduleHistoryEntry,
         ScheduleMetadata,
+        Schema,
+        SchemaInfo,
         SendMessageHeartBeatResponse,
         ValidateCalendarScheduleResponse,
+        ValidatePayloadResponse,
+        ValidationError,
     )
 
     __all__ = [
@@ -79,6 +88,7 @@ try:
         "MessageState",
         "ScheduleOptions",
         "ScheduleState",
+        "SchemaOptions",
         "ResponseWrapper",
         # Exceptions
         "InitializationError",
@@ -109,7 +119,15 @@ try:
         "Schedule",
         "ScheduleMetadata",
         "ScheduleHistoryEntry",
-        "ScheduleHistoryEntry",
+        # Pydantic models (optional) - Schema
+        "RegisterSchemaResponse",
+        "GetSchemaResponse",
+        "ListSchemasResponse",
+        "DeleteSchemaResponse",
+        "ValidatePayloadResponse",
+        "Schema",
+        "SchemaInfo",
+        "ValidationError",
         "models",
     ]
 except ImportError:
@@ -127,6 +145,8 @@ except ImportError:
         "QueueType",
         "MessageState",
         "ScheduleOptions",
+        "ScheduleState",
+        "SchemaOptions",
         "ScheduleState",
         "ResponseWrapper",
         # Exceptions
