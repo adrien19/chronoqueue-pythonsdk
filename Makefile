@@ -1,10 +1,13 @@
-.PHONY: help install install-dev lock update clean test lint format gen-proto check-proto setup-dirs all ci build publish
+.PHONY: help install install-dev lock update clean test lint format gen-proto check-proto setup-dirs update-proto all ci build publish
 
 # Configuration
 PROTO_PATH := ./proto
 OUTPUT_PATH := ./chronoqueue/api/v1
 PROTO_FILE := $(PROTO_PATH)/chronoqueue.proto
 PYTHON := python3
+CHRONOQUEUE_REPO ?= adrien19/chronoqueue
+CHRONOQUEUE_BRANCH ?= develop
+CHRONOQUEUE_PROTO_PATH ?= proto
 
 # Default target
 help:
@@ -14,6 +17,7 @@ help:
 	@echo "  make install-dev      - Install development dependencies"
 	@echo "  make lock             - Lock dependencies (update poetry.lock)"
 	@echo "  make update           - Update dependencies to latest versions"
+	@echo "  make update-proto     - Download latest proto definitions from chronoqueue repo"
 	@echo "  make gen-proto        - Generate Python gRPC classes from proto files"
 	@echo "  make check-proto      - Verify proto file exists"
 	@echo "  make clean            - Remove generated files and cache"
@@ -58,6 +62,33 @@ setup-dirs:
 	@mkdir -p ./chronoqueue/api
 	@touch ./chronoqueue/api/__init__.py
 	@touch $(OUTPUT_PATH)/__init__.py
+
+# Update proto definitions from chronoqueue repository
+update-proto: setup-dirs
+	@echo "Downloading proto definitions from chronoqueue repository..."
+	@if [ -z "$$GITHUB_TOKEN" ]; then \
+		echo "Error: GITHUB_TOKEN environment variable is not set"; \
+		echo "Please set it with: export GITHUB_TOKEN=your_github_token"; \
+		echo "You can create a token at: https://github.com/settings/tokens"; \
+		exit 1; \
+	fi
+	@echo "Fetching proto files from $(CHRONOQUEUE_REPO)/$(CHRONOQUEUE_BRANCH)..."
+	@rm -rf /tmp/chronoqueue-proto-download
+	@mkdir -p /tmp/chronoqueue-proto-download
+	@echo "Downloading repository archive..."
+	@curl -sL -H "Authorization: token $$GITHUB_TOKEN" \
+		-H "Accept: application/vnd.github.v3+json" \
+		"https://api.github.com/repos/$(CHRONOQUEUE_REPO)/tarball/$(CHRONOQUEUE_BRANCH)" \
+		-o /tmp/chronoqueue-proto-download/repo.tar.gz
+	@echo "Extracting proto files..."
+	@tar -xzf /tmp/chronoqueue-proto-download/repo.tar.gz -C /tmp/chronoqueue-proto-download
+	@rm -rf $(PROTO_PATH)/*
+	@mkdir -p $(PROTO_PATH)
+	@cp -r /tmp/chronoqueue-proto-download/*/$(CHRONOQUEUE_PROTO_PATH)/* $(PROTO_PATH)/
+	@rm -rf /tmp/chronoqueue-proto-download
+	@echo "Proto definitions updated successfully!"
+	@find $(PROTO_PATH) -name "*.proto" | wc -l | xargs echo "Downloaded proto files:"
+	@echo "Run 'make gen-proto' to regenerate Python classes."
 
 # Check if proto file exists
 check-proto:

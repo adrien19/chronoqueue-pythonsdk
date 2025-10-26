@@ -55,7 +55,17 @@ pip install grpcio
     make install-dev
     ```
 
-2. Generate the necessary gRPC classes from proto files:
+2. Update proto definitions from the chronoqueue repository:
+
+    ```bash
+    # Set your GitHub token (required for private repo access)
+    export GITHUB_TOKEN=your_github_token
+    
+    # Download latest proto definitions
+    make update-proto
+    ```
+
+3. Generate the necessary gRPC classes from proto files:
 
     ```bash
     make gen-proto
@@ -67,6 +77,7 @@ The project includes a comprehensive Makefile for common development tasks:
 
 - `make install` - Install production dependencies only
 - `make install-dev` - Install all dependencies including dev tools
+- `make update-proto` - Download latest proto definitions from chronoqueue repo
 - `make gen-proto` - Generate Python gRPC classes from proto files
 - `make clean` - Remove generated files and cache
 - `make test` - Run unit tests

@@ -86,9 +86,45 @@ make test-coverage
 make ci
 ```
 
+### Updating Proto Definitions
+
+The project uses proto definitions from the [chronoqueue repository](https://github.com/adrien19/chronoqueue). To update them:
+
+1. Set your GitHub token (required for private repo access):
+```bash
+export GITHUB_TOKEN=your_github_token
+```
+
+You can create a token at: https://github.com/settings/tokens (needs `repo` scope)
+
+2. Download the latest proto definitions:
+```bash
+make update-proto
+```
+
+3. Regenerate Python classes:
+```bash
+make gen-proto
+```
+
+**Advanced Configuration:**
+
+You can override the default repository, branch, or proto path:
+
+```bash
+# Use a different branch
+CHRONOQUEUE_BRANCH=main make update-proto
+
+# Use a fork or different repo
+CHRONOQUEUE_REPO=youruser/chronoqueue make update-proto
+
+# Use a different proto directory
+CHRONOQUEUE_PROTO_PATH=api/proto make update-proto
+```
+
 ### Regenerating Proto Files
 
-If you modify proto definitions:
+If you modify proto definitions locally:
 
 ```bash
 make clean
