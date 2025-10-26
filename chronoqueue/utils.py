@@ -11,6 +11,7 @@ from .api.common.v1.common_pb2 import Payload
 from .api.message.v1.message_pb2 import Message
 from .api.queue.v1.queue_pb2 import QueueType
 from .api.queueservice.v1.request_response_pb2 import PostMessageRequest
+from .api.schedule.v1.schedule_pb2 import Schedule
 
 # Import Pydantic models (will handle if not available)
 try:
@@ -66,6 +67,28 @@ class MessageState(Enum):
     COMPLETED = Message.Metadata.State.COMPLETED
     CANCELED = Message.Metadata.State.CANCELED
     ERRORED = Message.Metadata.State.ERRORED
+
+
+class ScheduleState(Enum):
+    """
+    Enumeration representing the possible states of a schedule in Chronoqueue.
+
+    Attributes:
+    ----------
+    SCHEDULED : ScheduleState
+        Schedule is active and will run at configured times.
+    CANCELED : ScheduleState
+        Schedule has been canceled.
+    ERRORED : ScheduleState
+        Schedule encountered an error.
+    PAUSED : ScheduleState
+        Schedule is paused and will not run.
+    """
+
+    SCHEDULED = Schedule.Metadata.State.SCHEDULED
+    CANCELED = Schedule.Metadata.State.CANCELED
+    ERRORED = Schedule.Metadata.State.ERRORED
+    PAUSED = Schedule.Metadata.State.PAUSED
 
 
 def string_to_duration(s: str) -> Duration:
@@ -272,6 +295,70 @@ class QueueOptions:
             raise ValueError("invisibility_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
 
 
+@dataclass
+class ScheduleOptions:
+    """
+    Data class representing the options for creating a schedule in the Chronoqueue service.
+
+    Attributes:
+    ----------
+    payload : dict
+        The payload data for messages created by this schedule.
+
+    queue_name : str
+        The name of the queue to post messages to.
+
+    state : ScheduleState, default[SCHEDULED]
+        The initial state of the schedule.
+
+    cron_schedule : Optional[str]
+        Cron expression for schedule timing (e.g., "0 0 * * *" for daily at midnight).
+        Mutually exclusive with calendar_schedule.
+
+    calendar_schedule : Optional[dict]
+        Calendar-based schedule configuration as a dict.
+        Mutually exclusive with cron_schedule.
+
+    exclusivity_key : Optional[str]
+        Key for ensuring message exclusivity.
+
+    priority : Optional[int]
+        Priority level for messages created by this schedule.
+
+    max_messages : Optional[int]
+        Maximum number of messages to create per schedule execution.
+
+    lease_duration : Optional[str]
+        Duration for message leases. Must be in format "[number]unit",
+        for example: "5s", "2m", "3.5m", or "3d".
+
+    timezone : Optional[str]
+        Timezone for schedule execution (e.g., "America/New_York").
+    """
+
+    payload: dict
+    queue_name: str
+    state: ScheduleState = ScheduleState.SCHEDULED
+    cron_schedule: Optional[str] = None
+    calendar_schedule: Optional[dict] = None
+    exclusivity_key: Optional[str] = ""
+    priority: Optional[int] = 0
+    max_messages: Optional[int] = None
+    lease_duration: Optional[str] = None
+    timezone: Optional[str] = None
+
+    def __post_init__(self):
+        if self.cron_schedule and self.calendar_schedule:
+            raise ValueError("Cannot specify both cron_schedule and calendar_schedule")
+        if not self.cron_schedule and not self.calendar_schedule:
+            raise ValueError("Must specify either cron_schedule or calendar_schedule")
+
+        if self.lease_duration:
+            duration_pattern = re.compile(r"^\d+(\.\d+)?[smhd]$")
+            if not duration_pattern.match(self.lease_duration):
+                raise ValueError("lease_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
+
+
 def _create_post_message_request(params: PostMessageParams) -> PostMessageRequest:
     """
     Creates a PostMessageRequest object given options.
@@ -355,6 +442,7 @@ class ResponseWrapper:
         # Lazy-load model map when first instance is created
         if not ResponseWrapper._MODEL_MAP and PYDANTIC_AVAILABLE:
             ResponseWrapper._MODEL_MAP = {
+                # Queue and Message responses
                 "CreateQueueResponse": models.CreateQueueResponse,
                 "DeleteQueueResponse": models.DeleteQueueResponse,
                 "PostMessageResponse": models.PostMessageResponse,
@@ -364,6 +452,16 @@ class ResponseWrapper:
                 "PeekQueueMessagesResponse": models.PeekQueueMessagesResponse,
                 "GetQueueStateResponse": models.GetQueueStateResponse,
                 "SendMessageHeartBeatResponse": models.SendMessageHeartBeatResponse,
+                # Schedule responses
+                "CreateScheduleResponse": models.CreateScheduleResponse,
+                "DeleteScheduleResponse": models.DeleteScheduleResponse,
+                "GetScheduleResponse": models.GetScheduleResponse,
+                "ListSchedulesResponse": models.ListSchedulesResponse,
+                "GetScheduleHistoryResponse": models.GetScheduleHistoryResponse,
+                "PauseScheduleResponse": models.PauseScheduleResponse,
+                "ResumeScheduleResponse": models.ResumeScheduleResponse,
+                "ValidateCalendarScheduleResponse": models.ValidateCalendarScheduleResponse,
+                "PreviewCalendarScheduleResponse": models.PreviewCalendarScheduleResponse,
             }
 
     def to_dict(self) -> Dict:

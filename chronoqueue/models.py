@@ -276,6 +276,300 @@ if PYDANTIC_AVAILABLE:
                 state=data.get("state", "UNKNOWN"),
             )
 
+    # Schedule Models
+
+    class ScheduleMetadata(BaseModel):
+        """
+        Metadata for a schedule.
+
+        Proto source: proto/schedule/v1/schedule.proto::Schedule.Metadata
+        """
+
+        payload: Optional[Dict[str, Any]] = Field(None, description="Schedule payload data")
+        state: str = Field(..., description="Schedule state (SCHEDULED, CANCELED, ERRORED, PAUSED)")
+        cron_schedule: Optional[str] = Field(None, description="Cron expression for schedule")
+        calendar_schedule: Optional[Dict[str, Any]] = Field(None, description="Calendar schedule configuration")
+        queue_name: str = Field(..., description="Target queue name")
+        message_ids: List[str] = Field(default_factory=list, description="Generated message IDs")
+        next_run: Optional[str] = Field(None, description="Next scheduled run time")
+        last_run: Optional[str] = Field(None, description="Last run time")
+        created_at: Optional[str] = Field(None, description="Creation timestamp")
+        updated_at: Optional[str] = Field(None, description="Last update timestamp")
+        exclusivity_key: Optional[str] = Field(None, description="Message exclusivity key")
+        state_message: Optional[str] = Field(None, description="State description/error message")
+        priority: int = Field(0, description="Message priority")
+        max_messages: Optional[int] = Field(None, description="Max messages per execution")
+        lease_duration: Optional[str] = Field(None, description="Message lease duration")
+        timezone: Optional[str] = Field(None, description="Schedule timezone")
+        next_runs: List[str] = Field(default_factory=list, description="Upcoming run times")
+
+        model_config = ConfigDict(from_attributes=True)
+
+    class Schedule(BaseModel):
+        """
+        A schedule for automated message posting.
+
+        Proto source: proto/schedule/v1/schedule.proto::Schedule
+        """
+
+        schedule_id: str = Field(..., description="Unique schedule identifier")
+        metadata: ScheduleMetadata = Field(..., description="Schedule metadata and configuration")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_schedule):
+            """Create from Schedule protobuf."""
+            from chronoqueue.api.schedule.v1 import schedule_pb2
+
+            # Get state enum name
+            state_enum = proto_schedule.metadata.state
+            state_name = schedule_pb2.Schedule.Metadata.State.Name(state_enum)
+
+            # Extract payload data
+            payload = None
+            if proto_schedule.metadata.HasField("payload") and proto_schedule.metadata.payload.data:
+                from google.protobuf import json_format
+
+                payload = json_format.MessageToDict(proto_schedule.metadata.payload.data)
+
+            # Helper to convert Timestamp to string
+            def timestamp_to_str(ts):
+                if ts and ts.seconds:
+                    return ts.ToJsonString()
+                return None
+
+            metadata = ScheduleMetadata(
+                payload=payload,
+                state=state_name,
+                cron_schedule=proto_schedule.metadata.cron_schedule if proto_schedule.metadata.cron_schedule else None,
+                calendar_schedule=None,  # TODO: Parse calendar schedule if needed
+                queue_name=proto_schedule.metadata.queue_name,
+                message_ids=list(proto_schedule.metadata.message_ids),
+                next_run=timestamp_to_str(proto_schedule.metadata.next_run),
+                last_run=timestamp_to_str(proto_schedule.metadata.last_run),
+                created_at=timestamp_to_str(proto_schedule.metadata.created_at),
+                updated_at=timestamp_to_str(proto_schedule.metadata.updated_at),
+                exclusivity_key=proto_schedule.metadata.exclusivity_key
+                if proto_schedule.metadata.exclusivity_key
+                else None,
+                state_message=proto_schedule.metadata.state_message if proto_schedule.metadata.state_message else None,
+                priority=proto_schedule.metadata.priority,
+                max_messages=proto_schedule.metadata.max_messages if proto_schedule.metadata.has_max_messages else None,
+                lease_duration=str(proto_schedule.metadata.lease_duration)
+                if proto_schedule.metadata.HasField("lease_duration")
+                else None,
+                timezone=proto_schedule.metadata.timezone if proto_schedule.metadata.timezone else None,
+                next_runs=list(proto_schedule.metadata.next_runs),
+            )
+
+            return cls(
+                schedule_id=proto_schedule.schedule_id,
+                metadata=metadata,
+            )
+
+    class ScheduleHistoryEntry(BaseModel):
+        """
+        A single execution entry in schedule history.
+
+        Proto source: proto/schedule/v1/schedule.proto::ScheduleHistory
+        """
+
+        execution_time: Optional[str] = Field(None, description="When the schedule executed")
+        success: bool = Field(False, description="Whether execution succeeded")
+        error_message: Optional[str] = Field(None, description="Error message if failed")
+        message_ids: List[str] = Field(default_factory=list, description="Created message IDs")
+
+        model_config = ConfigDict(from_attributes=True)
+
+    class CreateScheduleResponse(BaseModel):
+        """
+        Response from create_schedule operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::CreateScheduleResponse
+        """
+
+        success: bool = Field(True, description="Whether creation succeeded")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from CreateScheduleResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(success=data.get("success", True))
+
+    class DeleteScheduleResponse(BaseModel):
+        """
+        Response from delete_schedule operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::DeleteScheduleResponse
+        """
+
+        success: bool = Field(True, description="Whether deletion succeeded")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from DeleteScheduleResponse protobuf."""
+            return cls(success=True)
+
+    class GetScheduleResponse(BaseModel):
+        """
+        Response from get_schedule operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::GetScheduleResponse
+        """
+
+        schedule: Optional[Schedule] = Field(None, description="Retrieved schedule")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from GetScheduleResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            schedule = None
+            if "schedule" in data:
+                from chronoqueue.api.schedule.v1 import schedule_pb2
+
+                schedule_proto = proto_response.schedule
+                schedule = Schedule.from_proto(schedule_proto)
+
+            return cls(schedule=schedule)
+
+    class ListSchedulesResponse(BaseModel):
+        """
+        Response from list_schedules operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::ListSchedulesResponse
+        """
+
+        schedules: List[Schedule] = Field(default_factory=list, description="List of schedules")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from ListSchedulesResponse protobuf."""
+            schedules = []
+            for schedule_proto in proto_response.schedules:
+                schedules.append(Schedule.from_proto(schedule_proto))
+
+            return cls(schedules=schedules)
+
+    class GetScheduleHistoryResponse(BaseModel):
+        """
+        Response from get_schedule_history operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::GetScheduleHistoryResponse
+        """
+
+        schedule_id: Optional[str] = Field(None, description="Schedule ID")
+        messages: List[Message] = Field(default_factory=list, description="Messages created by schedule")
+        next_run: Optional[str] = Field(None, description="Next scheduled run")
+        last_run: Optional[str] = Field(None, description="Last run time")
+        created_at: Optional[str] = Field(None, description="Creation timestamp")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from GetScheduleHistoryResponse protobuf."""
+
+            # Helper to convert Timestamp to string
+            def timestamp_to_str(ts):
+                if ts and ts.seconds:
+                    return ts.ToJsonString()
+                return None
+
+            messages = []
+            if hasattr(proto_response, "schedule_history") and proto_response.schedule_history:
+                history = proto_response.schedule_history
+                for msg_proto in history.messages:
+                    messages.append(Message.from_proto(msg_proto))
+
+                return cls(
+                    schedule_id=history.schedule_id if history.schedule_id else None,
+                    messages=messages,
+                    next_run=timestamp_to_str(history.next_run),
+                    last_run=timestamp_to_str(history.last_run),
+                    created_at=timestamp_to_str(history.created_at),
+                )
+
+            return cls(messages=[])
+
+    class PauseScheduleResponse(BaseModel):
+        """
+        Response from pause_schedule operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::PauseScheduleResponse
+        """
+
+        success: bool = Field(True, description="Whether pause succeeded")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from PauseScheduleResponse protobuf."""
+            return cls(success=True)
+
+    class ResumeScheduleResponse(BaseModel):
+        """
+        Response from resume_schedule operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::ResumeScheduleResponse
+        """
+
+        success: bool = Field(True, description="Whether resume succeeded")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from ResumeScheduleResponse protobuf."""
+            return cls(success=True)
+
+    class ValidateCalendarScheduleResponse(BaseModel):
+        """
+        Response from validate_calendar_schedule operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::ValidateCalendarScheduleResponse
+        """
+
+        valid: bool = Field(False, description="Whether the calendar schedule is valid")
+        error_message: Optional[str] = Field(None, description="Validation error message if invalid")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from ValidateCalendarScheduleResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(
+                valid=data.get("valid", False),
+                error_message=data.get("error_message"),
+            )
+
+    class PreviewCalendarScheduleResponse(BaseModel):
+        """
+        Response from preview_calendar_schedule operation.
+
+        Proto source: proto/queueservice/v1/request_response.proto::PreviewCalendarScheduleResponse
+        """
+
+        execution_times: List[str] = Field(default_factory=list, description="Upcoming execution times")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from PreviewCalendarScheduleResponse protobuf."""
+            data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
+            return cls(execution_times=data.get("execution_times", []))
+
 else:
     # Pydantic not available - create placeholder classes
     class CreateQueueResponse:
@@ -338,9 +632,71 @@ else:
 
         pass
 
+    # Schedule model placeholders
+    class Schedule:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class ScheduleMetadata:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class ScheduleHistoryEntry:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class CreateScheduleResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class DeleteScheduleResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class GetScheduleResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class ListSchedulesResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class GetScheduleHistoryResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class PauseScheduleResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class ResumeScheduleResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class ValidateCalendarScheduleResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class PreviewCalendarScheduleResponse:
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
 
 __all__ = [
     "PYDANTIC_AVAILABLE",
+    # Queue and Message responses
     "CreateQueueResponse",
     "DeleteQueueResponse",
     "PostMessageResponse",
@@ -350,7 +706,22 @@ __all__ = [
     "PeekQueueMessagesResponse",
     "GetQueueStateResponse",
     "SendMessageHeartBeatResponse",
+    # Message models
     "Message",
     "MessageMetadata",
     "MessagePayload",
+    # Schedule responses
+    "CreateScheduleResponse",
+    "DeleteScheduleResponse",
+    "GetScheduleResponse",
+    "ListSchedulesResponse",
+    "GetScheduleHistoryResponse",
+    "PauseScheduleResponse",
+    "ResumeScheduleResponse",
+    "ValidateCalendarScheduleResponse",
+    "PreviewCalendarScheduleResponse",
+    # Schedule models
+    "Schedule",
+    "ScheduleMetadata",
+    "ScheduleHistoryEntry",
 ]
