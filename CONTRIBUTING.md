@@ -107,6 +107,14 @@ make update-proto
 make gen-proto
 ```
 
+This will:
+- Generate Python gRPC classes from all `.proto` files
+- Fix imports to use relative imports
+- Format the generated code with Black and isort
+- Create proper Python package structure
+
+**Important:** Generated proto files in `chronoqueue/api/proto/` are **checked into version control**. This allows users to install the SDK without needing build tools. After running `make gen-proto`, commit the changes.
+
 **Advanced Configuration:**
 
 You can override the default repository, branch, or proto path:
@@ -124,12 +132,16 @@ CHRONOQUEUE_PROTO_PATH=api/proto make update-proto
 
 ### Regenerating Proto Files
 
-If you modify proto definitions locally:
+If you modify proto definitions locally or want to regenerate from scratch:
 
 ```bash
-make clean
-make gen-proto
+make clean-all  # Remove all generated proto code
+make gen-proto  # Regenerate with formatting
 ```
+
+**Note on clean targets:**
+- `make clean` - Removes build artifacts and cache (preserves generated proto code)
+- `make clean-all` - Removes everything including generated proto code (use before regenerating)
 
 ## Testing
 

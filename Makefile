@@ -1,9 +1,8 @@
-.PHONY: help install install-dev lock update clean test lint format gen-proto check-proto setup-dirs update-proto all ci build publish
+.PHONY: help install install-dev lock update clean clean-all test lint format gen-proto check-proto setup-dirs update-proto all ci build publish
 
 # Configuration
 PROTO_PATH := ./proto
-OUTPUT_PATH := ./chronoqueue/api/v1
-PROTO_FILE := $(PROTO_PATH)/chronoqueue.proto
+OUTPUT_PATH := ./chronoqueue/api
 PYTHON := python3
 CHRONOQUEUE_REPO ?= adrien19/chronoqueue
 CHRONOQUEUE_BRANCH ?= develop
@@ -20,7 +19,8 @@ help:
 	@echo "  make update-proto     - Download latest proto definitions from chronoqueue repo"
 	@echo "  make gen-proto        - Generate Python gRPC classes from proto files"
 	@echo "  make check-proto      - Verify proto file exists"
-	@echo "  make clean            - Remove generated files and cache"
+	@echo "  make clean            - Remove build artifacts and cache (keeps generated proto code)"
+	@echo "  make clean-all        - Remove everything including generated proto code"
 	@echo "  make test             - Run unit tests"
 	@echo "  make test-coverage    - Run unit tests with coverage"
 	@echo "  make lint             - Run linting checks"
@@ -59,8 +59,6 @@ setup-dirs:
 	@echo "Setting up directory structure..."
 	@mkdir -p $(PROTO_PATH)
 	@mkdir -p $(OUTPUT_PATH)
-	@mkdir -p ./chronoqueue/api
-	@touch ./chronoqueue/api/__init__.py
 	@touch $(OUTPUT_PATH)/__init__.py
 
 # Update proto definitions from chronoqueue repository
@@ -92,45 +90,64 @@ update-proto: setup-dirs
 
 # Check if proto file exists
 check-proto:
-	@if [ ! -f $(PROTO_FILE) ]; then \
-		echo "Error: Proto file not found at $(PROTO_FILE)"; \
-		echo "Please ensure the proto file exists before generating code."; \
+	@echo "Checking for proto files..."
+	@if [ -z "$$(find $(PROTO_PATH) -name '*.proto' -type f)" ]; then \
+		echo "Error: No proto files found in $(PROTO_PATH)"; \
+		echo "Run 'make update-proto' to download proto definitions."; \
 		exit 1; \
 	fi
+	@echo "Found $$(find $(PROTO_PATH) -name '*.proto' -type f | wc -l) proto file(s)"
 
 # Generate Python gRPC classes from proto files
 gen-proto: setup-dirs check-proto
 	@echo "Generating Python gRPC classes from proto files..."
+	@echo "Cleaning old generated files..."
+	@rm -rf $(OUTPUT_PATH)/*.py
+	@find $(PROTO_PATH) -name "*.proto" -type f | while read proto_file; do \
+		echo "Processing $$proto_file..."; \
+	done
 	@poetry run $(PYTHON) -m grpc_tools.protoc \
+		-I=. \
 		-I=$(PROTO_PATH) \
 		--python_out=$(OUTPUT_PATH) \
 		--grpc_python_out=$(OUTPUT_PATH) \
-		$(PROTO_FILE)
-	@echo "Fixing imports in generated gRPC file..."
-	@if [ "$$(uname)" = "Darwin" ]; then \
-		sed -i '' 's/import chronoqueue_pb2 as chronoqueue__pb2/from . import chronoqueue_pb2 as chronoqueue__pb2/' $(OUTPUT_PATH)/chronoqueue_pb2_grpc.py; \
-	else \
-		sed -i 's/import chronoqueue_pb2 as chronoqueue__pb2/from . import chronoqueue_pb2 as chronoqueue__pb2/' $(OUTPUT_PATH)/chronoqueue_pb2_grpc.py; \
-	fi
+		$$(find $(PROTO_PATH) -name "*.proto" -type f)
+	@echo "Fixing imports in generated gRPC files..."
+	@find $(OUTPUT_PATH) -name "*_pb2_grpc.py" -type f | while read grpc_file; do \
+		if [ "$$(uname)" = "Darwin" ]; then \
+			sed -i '' 's/^import \([a-zA-Z0-9_]*\)_pb2 as \([a-zA-Z0-9_]*\)/from . import \1_pb2 as \2/' "$$grpc_file"; \
+		else \
+			sed -i 's/^import \([a-zA-Z0-9_]*\)_pb2 as \([a-zA-Z0-9_]*\)/from . import \1_pb2 as \2/' "$$grpc_file"; \
+		fi; \
+	done
+	@echo "Creating __init__.py files in all directories..."
+	@find $(OUTPUT_PATH)/proto -type d -exec touch {}/__init__.py \;
+	@echo "Formatting generated code..."
+	@poetry run black $(OUTPUT_PATH)/proto --line-length=120 --quiet || true
+	@poetry run isort $(OUTPUT_PATH)/proto --profile black --line-length 120 --quiet || true
 	@echo "Python gRPC classes generated successfully!"
+	@echo "Generated $$(find $(OUTPUT_PATH) -name "*.py" -type f | wc -l) Python file(s)"
 
 # Clean generated files and cache
 clean:
-	@echo "Cleaning generated files and cache..."
-	@rm -rf $(OUTPUT_PATH)/chronoqueue_pb2.py
-	@rm -rf $(OUTPUT_PATH)/chronoqueue_pb2_grpc.py
-	@rm -rf $(OUTPUT_PATH)/__pycache__
-	@rm -rf ./chronoqueue/__pycache__
-	@rm -rf ./chronoqueue/api/__pycache__
-	@rm -rf ./tests/__pycache__
-	@rm -rf .pytest_cache
-	@rm -rf .mypy_cache
+	@echo "Cleaning build artifacts and cache..."
 	@rm -rf dist
 	@rm -rf build
 	@rm -rf *.egg-info
+	@rm -rf .pytest_cache
+	@rm -rf .mypy_cache
+	@rm -rf htmlcov
+	@rm -rf .coverage
 	@find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name '*.pyc' -delete
-	@echo "Clean complete!"
+	@echo "Clean complete! (Generated proto code preserved)"
+
+# Clean everything including generated proto code
+clean-all: clean
+	@echo "Cleaning generated proto code..."
+	@rm -rf $(OUTPUT_PATH)/proto
+	@rm -rf $(OUTPUT_PATH)/v1
+	@echo "All generated files removed!"
 
 # Run unit tests
 test:
@@ -146,16 +163,16 @@ test-coverage:
 lint:
 	@echo "Running linting checks..."
 	@echo "Checking with flake8..."
-	@poetry run flake8 chronoqueue/ tests/ --max-line-length=120 --exclude=chronoqueue/api/v1/*.py --count --statistics || true
+	@poetry run flake8 chronoqueue/ tests/ --max-line-length=120 --exclude=chronoqueue/api/proto --count --statistics || true
 	@echo "Checking with mypy..."
 	@poetry run mypy chronoqueue/ || true
 
 # Format code
 format:
 	@echo "Formatting code with black..."
-	@poetry run black chronoqueue/ tests/ --line-length=120 --exclude='chronoqueue/api/v1/.*\.py'
+	@poetry run black chronoqueue/ tests/ --line-length=120 --exclude='chronoqueue/api/proto'
 	@echo "Sorting imports with isort..."
-	@poetry run isort chronoqueue/ tests/ --skip chronoqueue/api/v1 --profile black --line-length 120
+	@poetry run isort chronoqueue/ tests/ --skip chronoqueue/api/proto --profile black --line-length 120
 
 # Type checking
 typecheck:
