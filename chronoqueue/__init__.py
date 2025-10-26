@@ -30,6 +30,8 @@ from .utils import (
     QueueOptions,
     QueueType,
     ResponseWrapper,
+    ScheduleOptions,
+    ScheduleState,
     TlsConfig,
 )
 
@@ -39,16 +41,28 @@ try:
     from .models import (
         AcknowledgeMessageResponse,
         CreateQueueResponse,
+        CreateScheduleResponse,
         DeleteQueueResponse,
+        DeleteScheduleResponse,
         GetNextMessageResponse,
         GetQueueStateResponse,
+        GetScheduleHistoryResponse,
+        GetScheduleResponse,
+        ListSchedulesResponse,
         Message,
         MessageMetadata,
         MessagePayload,
+        PauseScheduleResponse,
         PeekQueueMessagesResponse,
         PostMessageResponse,
+        PreviewCalendarScheduleResponse,
         RenewMessageLeaseResponse,
+        ResumeScheduleResponse,
+        Schedule,
+        ScheduleHistoryEntry,
+        ScheduleMetadata,
         SendMessageHeartBeatResponse,
+        ValidateCalendarScheduleResponse,
     )
 
     __all__ = [
@@ -63,11 +77,13 @@ try:
         "QueueOptions",
         "QueueType",
         "MessageState",
+        "ScheduleOptions",
+        "ScheduleState",
         "ResponseWrapper",
         # Exceptions
         "InitializationError",
         "RpcOperationError",
-        # Pydantic models (optional)
+        # Pydantic models (optional) - Queue and Message
         "CreateQueueResponse",
         "DeleteQueueResponse",
         "PostMessageResponse",
@@ -80,6 +96,20 @@ try:
         "Message",
         "MessageMetadata",
         "MessagePayload",
+        # Pydantic models (optional) - Schedule
+        "CreateScheduleResponse",
+        "DeleteScheduleResponse",
+        "GetScheduleResponse",
+        "ListSchedulesResponse",
+        "GetScheduleHistoryResponse",
+        "PauseScheduleResponse",
+        "ResumeScheduleResponse",
+        "ValidateCalendarScheduleResponse",
+        "PreviewCalendarScheduleResponse",
+        "Schedule",
+        "ScheduleMetadata",
+        "ScheduleHistoryEntry",
+        "ScheduleHistoryEntry",
         "models",
     ]
 except ImportError:
@@ -96,6 +126,8 @@ except ImportError:
         "QueueOptions",
         "QueueType",
         "MessageState",
+        "ScheduleOptions",
+        "ScheduleState",
         "ResponseWrapper",
         # Exceptions
         "InitializationError",

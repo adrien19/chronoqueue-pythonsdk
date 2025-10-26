@@ -6,12 +6,15 @@ from collections import deque
 from random import randint
 
 import grpc
+from google.protobuf import json_format
 from google.protobuf.duration_pb2 import Duration
 
+from .api.common.v1 import common_pb2
 from .api.message.v1 import message_pb2
 from .api.message.v1.message_pb2 import Message
 from .api.queue.v1 import queue_pb2
 from .api.queueservice.v1 import request_response_pb2, service_pb2_grpc
+from .api.schedule.v1 import schedule_pb2
 from .exceptions import InitializationError, RpcOperationError
 from .utils import (
     AcknowledgeMessageParams,
@@ -19,8 +22,10 @@ from .utils import (
     PostMessageParams,
     QueueOptions,
     ResponseWrapper,
+    ScheduleOptions,
     TlsConfig,
     _create_post_message_request,
+    dict_to_protobuf_struct,
     string_to_duration,
 )
 
@@ -694,6 +699,424 @@ class ChronoqueueClient:
         except grpc.RpcError as e:
             logging.error(f"Error sending heartbeat for message {message_id}: {e.details()}")
             error = RpcOperationError(f"Failed to send heartbeat due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    # Schedule Operations
+
+    def create_schedule(self, schedule_id: str, options: ScheduleOptions, error_handler=None) -> ResponseWrapper:
+        """
+        Create a new schedule in Chronoqueue.
+
+        Creates a schedule that will automatically post messages to a queue based on
+        the specified cron expression or calendar configuration.
+
+        Parameters:
+        ----------
+        schedule_id : str
+            Unique identifier for the schedule.
+
+        options : ScheduleOptions
+            Configuration options for the schedule including payload, queue name,
+            schedule timing (cron or calendar), and optional settings.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the CreateScheduleResponse protobuf.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If schedule creation fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> from chronoqueue.utils import ScheduleOptions, ScheduleState
+        >>> options = ScheduleOptions(
+        ...     payload={"task": "daily_report"},
+        ...     queue_name="reports_queue",
+        ...     cron_schedule="0 0 * * *",  # Daily at midnight
+        ...     state=ScheduleState.SCHEDULED
+        ... )
+        >>> response = client.create_schedule("daily_report_schedule", options)
+        """
+        try:
+            # Build payload
+            payload_struct = dict_to_protobuf_struct(options.payload)
+            payload = common_pb2.Payload(data=payload_struct)
+
+            # Build metadata
+            metadata = schedule_pb2.Schedule.Metadata(
+                payload=payload,
+                state=schedule_pb2.Schedule.Metadata.State.Value(options.state.name),
+                queue_name=options.queue_name,
+            )
+
+            # Set schedule config (cron or calendar)
+            if options.cron_schedule:
+                metadata.cron_schedule = options.cron_schedule
+            elif options.calendar_schedule:
+                # Convert dict to CalendarSchedule protobuf
+                calendar_schedule = json_format.ParseDict(options.calendar_schedule, schedule_pb2.CalendarSchedule())
+                metadata.calendar_schedule.CopyFrom(calendar_schedule)
+
+            # Set optional fields
+            if options.exclusivity_key:
+                metadata.exclusivity_key = options.exclusivity_key
+            if options.priority is not None:
+                metadata.priority = options.priority
+            if options.max_messages is not None:
+                metadata.has_max_messages = True
+                metadata.max_messages = options.max_messages
+            if options.lease_duration:
+                metadata.lease_duration.CopyFrom(string_to_duration(options.lease_duration))
+            if options.timezone:
+                metadata.timezone = options.timezone
+
+            # Build schedule
+            schedule = schedule_pb2.Schedule(schedule_id=schedule_id, metadata=metadata)
+
+            # Build request and call service
+            request = request_response_pb2.CreateScheduleRequest(schedule=schedule)
+            response = self.stub.CreateSchedule(request)
+            return ResponseWrapper(response_protobuf=response)
+
+        except grpc.RpcError as e:
+            logging.error(f"Error creating schedule {schedule_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to create schedule due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def delete_schedule(self, schedule_id: str, error_handler=None) -> ResponseWrapper:
+        """
+        Delete a schedule from Chronoqueue.
+
+        Permanently removes the specified schedule. The schedule will no longer
+        post messages to the queue.
+
+        Parameters:
+        ----------
+        schedule_id : str
+            Unique identifier of the schedule to delete.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the DeleteScheduleResponse protobuf.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If schedule deletion fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> response = client.delete_schedule("daily_report_schedule")
+        """
+        try:
+            request = request_response_pb2.DeleteScheduleRequest(schedule_id=schedule_id)
+            response = self.stub.DeleteSchedule(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error deleting schedule {schedule_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to delete schedule due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def get_schedule(self, schedule_id: str, error_handler=None) -> ResponseWrapper:
+        """
+        Retrieve details of a specific schedule.
+
+        Fetches the current configuration and state of a schedule including
+        its payload, timing configuration, and execution history.
+
+        Parameters:
+        ----------
+        schedule_id : str
+            Unique identifier of the schedule to retrieve.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the GetScheduleResponse protobuf with schedule details.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If retrieval fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> response = client.get_schedule("daily_report_schedule")
+        >>> schedule = response.to_dict()
+        """
+        try:
+            request = request_response_pb2.GetScheduleRequest(schedule_id=schedule_id)
+            response = self.stub.GetSchedule(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error getting schedule {schedule_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to get schedule due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def list_schedules(self, prefix: str = "", error_handler=None) -> ResponseWrapper:
+        """
+        List all schedules, optionally filtered by ID prefix.
+
+        Retrieves a list of all schedules in the system. Can filter results
+        to only include schedules whose IDs start with the specified prefix.
+
+        Parameters:
+        ----------
+        prefix : str, optional
+            Filter to only return schedules with IDs starting with this prefix.
+            If empty (default), returns all schedules.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the ListSchedulesResponse protobuf with list of schedules.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If listing fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> response = client.list_schedules(prefix="daily_")
+        >>> schedules = response.to_dict()
+        """
+        try:
+            request = request_response_pb2.ListSchedulesRequest(prefix=prefix)
+            response = self.stub.ListSchedules(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error listing schedules: {e.details()}")
+            error = RpcOperationError(f"Failed to list schedules due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def get_schedule_history(self, schedule_id: str, limit: int = 10, error_handler=None) -> ResponseWrapper:
+        """
+        Retrieve execution history for a schedule.
+
+        Fetches the recent execution history of a schedule, showing when it ran,
+        whether executions succeeded, and any errors encountered.
+
+        Parameters:
+        ----------
+        schedule_id : str
+            Unique identifier of the schedule.
+
+        limit : int, optional
+            Maximum number of history entries to return. Default is 10.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the GetScheduleHistoryResponse protobuf with execution history.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If retrieval fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> response = client.get_schedule_history("daily_report_schedule", limit=20)
+        >>> history = response.to_dict()
+        """
+        try:
+            request = request_response_pb2.GetScheduleHistoryRequest(schedule_id=schedule_id, limit=limit)
+            response = self.stub.GetScheduleHistory(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error getting schedule history for {schedule_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to get schedule history due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def pause_schedule(self, schedule_id: str, error_handler=None) -> ResponseWrapper:
+        """
+        Pause a schedule to prevent it from executing.
+
+        Temporarily suspends a schedule. The schedule will not post messages to the queue
+        until it is resumed. The schedule configuration is preserved.
+
+        Parameters:
+        ----------
+        schedule_id : str
+            Unique identifier of the schedule to pause.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the PauseScheduleResponse protobuf.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If pausing fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> response = client.pause_schedule("daily_report_schedule")
+        """
+        try:
+            request = request_response_pb2.PauseScheduleRequest(schedule_id=schedule_id)
+            response = self.stub.PauseSchedule(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error pausing schedule {schedule_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to pause schedule due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def resume_schedule(self, schedule_id: str, error_handler=None) -> ResponseWrapper:
+        """
+        Resume a paused schedule.
+
+        Reactivates a paused schedule, allowing it to resume posting messages
+        to the queue according to its configuration.
+
+        Parameters:
+        ----------
+        schedule_id : str
+            Unique identifier of the schedule to resume.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the ResumeScheduleResponse protobuf.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If resuming fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> response = client.resume_schedule("daily_report_schedule")
+        """
+        try:
+            request = request_response_pb2.ResumeScheduleRequest(schedule_id=schedule_id)
+            response = self.stub.ResumeSchedule(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error resuming schedule {schedule_id}: {e.details()}")
+            error = RpcOperationError(f"Failed to resume schedule due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def validate_calendar_schedule(self, calendar_schedule: dict, error_handler=None) -> ResponseWrapper:
+        """
+        Validate a calendar schedule configuration.
+
+        Checks whether a calendar schedule configuration is valid before creating
+        or updating a schedule. Useful for validating complex calendar rules.
+
+        Parameters:
+        ----------
+        calendar_schedule : dict
+            Dictionary representation of a CalendarSchedule configuration to validate.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the ValidateCalendarScheduleResponse protobuf with validation result.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If validation request fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> calendar_config = {
+        ...     "type": "MONTHLY",
+        ...     "rules": [{"monthly": {"day_of_month": [1, 15]}}]
+        ... }
+        >>> response = client.validate_calendar_schedule(calendar_config)
+        >>> is_valid = response.to_dict()
+        """
+        try:
+            calendar_schedule_pb = json_format.ParseDict(calendar_schedule, schedule_pb2.CalendarSchedule())
+            request = request_response_pb2.ValidateCalendarScheduleRequest(calendar_schedule=calendar_schedule_pb)
+            response = self.stub.ValidateCalendarSchedule(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error validating calendar schedule: {e.details()}")
+            error = RpcOperationError(f"Failed to validate calendar schedule due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def preview_calendar_schedule(
+        self, calendar_schedule: dict, count: int = 10, error_handler=None
+    ) -> ResponseWrapper:
+        """
+        Preview upcoming execution times for a calendar schedule.
+
+        Generates a preview of when a calendar schedule would execute, showing
+        the next N scheduled times based on the configuration.
+
+        Parameters:
+        ----------
+        calendar_schedule : dict
+            Dictionary representation of a CalendarSchedule configuration to preview.
+
+        count : int, optional
+            Number of upcoming execution times to generate. Default is 10.
+
+        error_handler : callable, optional
+            A custom error handling function invoked if an error occurs.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the PreviewCalendarScheduleResponse protobuf with execution times.
+
+        Raises:
+        ------
+        RpcOperationError:
+            If preview request fails and no custom error handler is provided.
+
+        Example:
+        --------
+        >>> calendar_config = {
+        ...     "type": "WEEKLY",
+        ...     "rules": [{"weekly": {"day_of_week": ["MONDAY", "FRIDAY"]}}]
+        ... }
+        >>> response = client.preview_calendar_schedule(calendar_config, count=5)
+        >>> times = response.to_dict()
+        """
+        try:
+            calendar_schedule_pb = json_format.ParseDict(calendar_schedule, schedule_pb2.CalendarSchedule())
+            request = request_response_pb2.PreviewCalendarScheduleRequest(
+                calendar_schedule=calendar_schedule_pb, count=count
+            )
+            response = self.stub.PreviewCalendarSchedule(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error previewing calendar schedule: {e.details()}")
+            error = RpcOperationError(f"Failed to preview calendar schedule due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
     def close(self, error_handler=None) -> None:
