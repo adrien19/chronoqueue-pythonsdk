@@ -9,7 +9,13 @@ exclude =
     *.egg,
     dist,
     build,
-    chronoqueue/api/v1/*.py
+    chronoqueue/api/common,
+    chronoqueue/api/google,
+    chronoqueue/api/message,
+    chronoqueue/api/queue,
+    chronoqueue/api/queueservice,
+    chronoqueue/api/schedule,
+    chronoqueue/api/schema
 ignore =
     E203,  # whitespace before ':'
     E266,  # too many leading '#' for block comment

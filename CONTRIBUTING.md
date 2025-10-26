@@ -86,14 +86,64 @@ make test-coverage
 make ci
 ```
 
-### Regenerating Proto Files
+### Updating Proto Definitions
 
-If you modify proto definitions:
+The project uses proto definitions from the [chronoqueue repository](https://github.com/adrien19/chronoqueue). To update them:
 
+1. Set your GitHub token (required for private repo access):
 ```bash
-make clean
+export GITHUB_TOKEN=your_github_token
+```
+
+You can create a token at: https://github.com/settings/tokens (needs `repo` scope)
+
+2. Download the latest proto definitions:
+```bash
+make update-proto
+```
+
+3. Regenerate Python classes:
+```bash
 make gen-proto
 ```
+
+This will:
+- Generate Python gRPC classes from all `.proto` files
+- Reorganize files to `chronoqueue/api/` (removing `proto/` prefix)
+- Fix imports to use `chronoqueue.api.*` instead of `proto.*`
+- Use relative imports within packages
+- Format the generated code with Black and isort
+- Create proper Python package structure
+
+**Important:** Generated files in `chronoqueue/api/{common,google,message,queue,queueservice,schedule,schema}/` are **checked into version control**. This allows users to install the SDK without needing build tools. After running `make gen-proto`, commit the changes.
+
+**Advanced Configuration:**
+
+You can override the default repository, branch, or proto path:
+
+```bash
+# Use a different branch
+CHRONOQUEUE_BRANCH=main make update-proto
+
+# Use a fork or different repo
+CHRONOQUEUE_REPO=youruser/chronoqueue make update-proto
+
+# Use a different proto directory
+CHRONOQUEUE_PROTO_PATH=api/proto make update-proto
+```
+
+### Regenerating Proto Files
+
+If you modify proto definitions locally or want to regenerate from scratch:
+
+```bash
+make clean-all  # Remove all generated proto code
+make gen-proto  # Regenerate with formatting
+```
+
+**Note on clean targets:**
+- `make clean` - Removes build artifacts and cache (preserves generated proto code)
+- `make clean-all` - Removes everything including generated proto code (use before regenerating)
 
 ## Testing
 
