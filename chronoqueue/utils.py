@@ -138,17 +138,17 @@ class PostMessageOptions:
     invisibility_duration : str, optional (default="0s")
         Duration for which the message should remain invisible. Must be in format "[number]unit",
         for example: "5s", "2m", "3.5m", or "3d".
-    attempts_left : int, optional (default=3)
-        Number of processing attempts left for the message.
+    max_attempts : int, optional (default=3)
+        Maximum number of processing attempts for the message.
     data_metadata : Dict, optional
         Metadata associated with the message's payload.
     """
 
     priority: int = 0
     state: MessageState = MessageState.INVISIBLE
-    lease_duration: str = "0s"
+    lease_duration: str = "1s"
     invisibility_duration: str = "0s"
-    attempts_left: int = 3
+    max_attempts: int = 0
     data_metadata: Dict = field(default_factory=dict)
 
     def __post_init__(self):
@@ -269,7 +269,7 @@ class QueueOptions:
     exclusivity_key : Optional[str]
         The key used to ensure message exclusivity in the queue.
 
-    dequeue_attempts : Optional[int]
+    max_attempts : Optional[int]
         The number of times a message can be dequeued before it is considered failed.
 
     lease_duration : Optional[str]
@@ -281,7 +281,7 @@ class QueueOptions:
         for example: "5s", "2m", "3.5m", or "3d".
     """
 
-    dequeue_attempts: Optional[int]
+    max_attempts: Optional[int]
     lease_duration: Optional[str]
     invisibility_duration: Optional[str]
     type: QueueType = QueueType.SIMPLE
@@ -416,7 +416,7 @@ def _create_post_message_request(params: PostMessageParams) -> PostMessageReques
             ),
             lease_duration=string_to_duration(params.options.lease_duration),
             invisibility_duration=string_to_duration(params.options.invisibility_duration),
-            attempts_left=params.options.attempts_left,
+            max_attempts=params.options.max_attempts,
             priority=params.options.priority,
         )
     else:

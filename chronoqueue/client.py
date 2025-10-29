@@ -3,7 +3,10 @@ import os
 import threading
 import time
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from random import randint
+from typing import Callable, Dict, Optional
 
 import grpc
 from google.protobuf import json_format
@@ -76,7 +79,17 @@ class ChronoqueueClient:
     >>> client.post_message(msg_params)
     """
 
-    def __init__(self, host: str, port: int, use_tls=True, tls_config: TlsConfig = None):
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        use_tls=True,
+        tls_config: TlsConfig = None,
+        heartbeat_max_duration: int = 300,
+        heartbeat_max_count: int = 1000,
+        heartbeat_thread_pool_size: int = 20,
+        heartbeat_error_callback: Optional[Callable] = None,
+    ):
         """
         Initialize the ChronoqueueClient.
 
@@ -95,6 +108,15 @@ class ChronoqueueClient:
         tls_config : TlsConfig, optional
             Configuration for TLS connectivity, providing paths to CA, client certificate,
             and client key. Required if `use_tls` is True, by default None.
+        heartbeat_max_duration : int, optional
+            Maximum duration in seconds for heartbeats per message, by default 300 (5 minutes).
+        heartbeat_max_count : int, optional
+            Maximum number of heartbeats to send per message, by default 1000.
+        heartbeat_thread_pool_size : int, optional
+            Size of the thread pool for heartbeat workers, by default 20.
+        heartbeat_error_callback : callable, optional
+            Callback function to invoke when heartbeat errors occur. Should accept a dict
+            with keys: message_id, queue_name, error, timestamp, retry_count.
 
         Raises:
         ------
@@ -106,6 +128,9 @@ class ChronoqueueClient:
         self.port = port
         self._use_tls = use_tls
         self._tls_config = tls_config
+        self._heartbeat_max_duration = heartbeat_max_duration
+        self._heartbeat_max_count = heartbeat_max_count
+        self._heartbeat_error_callback = heartbeat_error_callback
 
         if self._use_tls:
             if self._tls_config is None:
@@ -127,9 +152,21 @@ class ChronoqueueClient:
         else:
             self.channel = grpc.insecure_channel(f"{host}:{port}")
         self.stub = service_pb2_grpc.QueueServiceStub(self.channel)
-        self._heartbeat_data = deque()
+
+        # New heartbeat management structures
+        self._active_heartbeats: Dict[str, dict] = {}
+        self._heartbeat_control: Dict[str, threading.Event] = {}
+        self._heartbeat_metrics: Dict[str, dict] = {}
         self.lock = threading.Lock()
-        self._stop_heartbeat = threading.Event()  # Signal to stop the heartbeat thread
+
+        # Thread pool for concurrent heartbeat processing
+        self._heartbeat_executor = ThreadPoolExecutor(
+            max_workers=heartbeat_thread_pool_size, thread_name_prefix="chronoqueue-heartbeat"
+        )
+
+        # Legacy compatibility - kept for backward compat but deprecated
+        self._heartbeat_data = deque()
+        self._stop_heartbeat = threading.Event()
 
     def _handle_error(self, error, handler=None):
         """Internal method to handle errors. Calls the custom error handler if set."""
@@ -188,7 +225,7 @@ class ChronoqueueClient:
             if options is not None:
                 metadata = queue_pb2.QueueMetadata(
                     type=options.type.value,
-                    dequeue_attempts=options.dequeue_attempts,
+                    default_max_attempts=options.max_attempts,
                     lease_duration=string_to_duration(options.lease_duration),
                     exclusivity_key=options.exclusivity_key,
                     invisibility_duration=string_to_duration(options.invisibility_duration),
@@ -360,25 +397,55 @@ class ChronoqueueClient:
             response = self.stub.GetNextMessage(request)
             response_wrapper = ResponseWrapper(response_protobuf=response)
 
-            if len(response_wrapper.to_dict()) != 0 and enable_heartbeat:
-                message_id = response_wrapper.to_dict().get("message_id")
+            if enable_heartbeat:
+                resp_dict = response_wrapper.to_dict()
+                # Check for actual message presence - handle both possible response structures
+                message_id = resp_dict.get("messageId") or resp_dict.get("message", {}).get("messageId")
 
-                max_reconnect_attempts = response_wrapper.to_dict().get("max_reconnect_attempts", 3)
-                heartbeat_frequency = response_wrapper.to_dict().get("heartbeat_frequency", 1)
+                if message_id:
+                    logging.info(f"Starting heartbeat for message {message_id} on queue {queue_name}")
 
-                if heartbeat_frequency:
-                    with self.lock:
-                        self._heartbeat_data.append(
-                            {
-                                "queue_name": queue_name,
-                                "message_id": message_id,
-                                "max_reconnect_attempts": max_reconnect_attempts,
-                                "heartbeat_frequency": heartbeat_frequency,
-                            }
-                        )
-                    if not hasattr(self, "_heartbeat_manager_thread") or not self._heartbeat_manager_thread.is_alive():
-                        self._heartbeat_manager_thread = threading.Thread(target=self.__manage_heartbeats)
-                        self._heartbeat_manager_thread.start()
+                    max_reconnect_attempts = resp_dict.get("max_reconnect_attempts", 3)
+                    heartbeat_frequency = resp_dict.get("heartbeat_frequency", 1)
+
+                    if heartbeat_frequency:
+                        stop_event = threading.Event()
+
+                        with self.lock:
+                            # Check if heartbeat already exists for this message
+                            if message_id in self._active_heartbeats:
+                                logging.warning(f"Heartbeat already active for message {message_id}, skipping")
+                            else:
+                                self._heartbeat_control[message_id] = stop_event
+
+                                # Submit heartbeat task to thread pool
+                                future = self._heartbeat_executor.submit(
+                                    self.__send_heartbeat_for_message,
+                                    message_id=message_id,
+                                    queue_name=queue_name,
+                                    stop_event=stop_event,
+                                    heartbeat_frequency=heartbeat_frequency,
+                                    max_reconnect_attempts=max_reconnect_attempts,
+                                )
+
+                                self._active_heartbeats[message_id] = {
+                                    "future": future,
+                                    "queue_name": queue_name,
+                                    "started_at": time.time(),
+                                    "heartbeat_frequency": heartbeat_frequency,
+                                }
+
+                                self._heartbeat_metrics[message_id] = {
+                                    "message_id": message_id,
+                                    "queue_name": queue_name,
+                                    "started_at": time.time(),
+                                    "heartbeats_sent": 0,
+                                    "heartbeats_failed": 0,
+                                    "last_heartbeat_at": None,
+                                    "last_error": None,
+                                }
+                else:
+                    logging.debug(f"No message returned from queue {queue_name}, heartbeat not started")
 
             return response_wrapper
         except grpc.RpcError as e:
@@ -386,42 +453,185 @@ class ChronoqueueClient:
             error = RpcOperationError(f"Failed to get next message due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
-    def __manage_heartbeats(self):
+    def __send_heartbeat_for_message(
+        self,
+        message_id: str,
+        queue_name: str,
+        stop_event: threading.Event,
+        heartbeat_frequency: int,
+        max_reconnect_attempts: int,
+    ):
         """
-        Manage the heartbeats for leased messages in the Chronoqueue service.
+        Send heartbeats for a single message in a dedicated thread.
 
-        This private method manages the heartbeats for messages obtained from the Chronoqueue service.
-        It ensures that the lease on a message is maintained by periodically sending heartbeat messages
-        to the service, thereby extending the lease duration and preventing premature message visibility
-        to other consumers.
+        This method manages heartbeats for an individual message, sending periodic heartbeat
+        requests to the Chronoqueue service to maintain the message lease. It runs until:
+        1. The stop_event is set (e.g., when message is acknowledged)
+        2. The server returns a non-RUNNING state
+        3. Maximum duration or count is exceeded
+        4. Unrecoverable errors occur
 
-        This method runs in a separate thread and continuously monitors the `heartbeat_data` deque for
-        items to process. For each item, it sends a heartbeat message to the Chronoqueue service at
-        regular intervals specified by the `heartbeat_frequency` parameter within the item.
-
-        In the case of failures or errors during the heartbeat message sending (like network issues),
-        the method employs an exponential back-off strategy with jitter to retry the heartbeat message
-        sending, up to a specified number of attempts defined by `max_reconnect_attempts` in the item.
+        Parameters:
+        ----------
+        message_id : str
+            The unique identifier of the message.
+        queue_name : str
+            The name of the queue containing the message.
+        stop_event : threading.Event
+            Event to signal when heartbeat should stop.
+        heartbeat_frequency : int
+            Interval in seconds between heartbeats.
+        max_reconnect_attempts : int
+            Maximum retry attempts for transient errors.
 
         Note:
         ----
-        This method is intended to run in a dedicated thread and should not be called directly in normal
-        SDK usage. It's pivotal in maintaining message leases during long-running message processing tasks
-        and ensures coherent and reliable message consumption from the Chronoqueue service.
-
-        Warning:
-        -------
-        Mismanagement or premature termination of the heartbeat manager thread can lead to issues
-        with message lease maintenance and might result in a message becoming visible to other consumers
-        before it's fully processed. Ensure to manage SDK termination and error handling adequately to
-        prevent such scenarios.
+        This method runs in a background thread pool and should not be called directly.
+        It automatically cleans up tracking structures when it exits.
         """
+        start_time = time.time()
+        heartbeat_count = 0
+        reconnect_attempts = 0
+
+        logging.info(f"Heartbeat thread started for message {message_id} on queue {queue_name}")
+
+        try:
+            while not stop_event.is_set():
+                # Safety check 1: Maximum duration
+                elapsed = time.time() - start_time
+                if elapsed > self._heartbeat_max_duration:
+                    logging.warning(
+                        f"Heartbeat for message {message_id} exceeded max duration "
+                        f"{self._heartbeat_max_duration}s (elapsed: {elapsed:.1f}s)"
+                    )
+                    break
+
+                # Safety check 2: Maximum count
+                if heartbeat_count >= self._heartbeat_max_count:
+                    logging.warning(
+                        f"Heartbeat for message {message_id} exceeded max count "
+                        f"{self._heartbeat_max_count} (sent: {heartbeat_count})"
+                    )
+                    break
+
+                try:
+                    heartbeat_request = request_response_pb2.SendMessageHeartBeatRequest(
+                        queue_name=queue_name, message_id=message_id
+                    )
+                    heartbeat_resp = self.stub.SendMessageHeartBeat(heartbeat_request)
+
+                    heartbeat_count += 1
+                    reconnect_attempts = 0  # Reset on success
+
+                    # Update metrics
+                    with self.lock:
+                        if message_id in self._heartbeat_metrics:
+                            self._heartbeat_metrics[message_id]["heartbeats_sent"] = heartbeat_count
+                            self._heartbeat_metrics[message_id]["last_heartbeat_at"] = time.time()
+
+                    logging.debug(
+                        f"Heartbeat #{heartbeat_count} sent for message {message_id}, "
+                        f"state: {Message.Metadata.State.Name(heartbeat_resp.state)}"
+                    )
+
+                    # Check if message is no longer running
+                    if heartbeat_resp.state != Message.Metadata.State.RUNNING:
+                        logging.info(
+                            f"Message {message_id} no longer RUNNING "
+                            f"(state: {Message.Metadata.State.Name(heartbeat_resp.state)}), stopping heartbeat"
+                        )
+                        break
+
+                    # Interruptible sleep - allows quick stop on event
+                    stop_event.wait(timeout=heartbeat_frequency)
+
+                except grpc.RpcError as e:
+                    reconnect_attempts += 1
+                    error_msg = f"Heartbeat error for message {message_id}: {e.details()}"
+
+                    # Update metrics
+                    with self.lock:
+                        if message_id in self._heartbeat_metrics:
+                            self._heartbeat_metrics[message_id]["heartbeats_failed"] += 1
+                            self._heartbeat_metrics[message_id]["last_error"] = str(e.details())
+
+                    if reconnect_attempts >= max_reconnect_attempts:
+                        logging.error(
+                            f"{error_msg}. Max reconnect attempts ({max_reconnect_attempts}) reached, stopping heartbeat"
+                        )
+
+                        # Notify via callback
+                        if self._heartbeat_error_callback:
+                            try:
+                                self._heartbeat_error_callback(
+                                    {
+                                        "message_id": message_id,
+                                        "queue_name": queue_name,
+                                        "error": e,
+                                        "error_details": e.details(),
+                                        "timestamp": time.time(),
+                                        "retry_count": reconnect_attempts,
+                                        "heartbeats_sent": heartbeat_count,
+                                    }
+                                )
+                            except Exception as cb_error:
+                                logging.error(f"Error in heartbeat error callback: {cb_error}")
+                        break
+                    else:
+                        logging.warning(f"{error_msg}. Retry {reconnect_attempts}/{max_reconnect_attempts}")
+                        # Exponential backoff with jitter
+                        backoff_time = (2**reconnect_attempts) + randint(1, 10)
+                        stop_event.wait(timeout=backoff_time)
+
+        except Exception as e:
+            logging.error(f"Unexpected error in heartbeat thread for message {message_id}: {e}", exc_info=True)
+
+            # Notify via callback
+            if self._heartbeat_error_callback:
+                try:
+                    self._heartbeat_error_callback(
+                        {
+                            "message_id": message_id,
+                            "queue_name": queue_name,
+                            "error": e,
+                            "error_details": str(e),
+                            "timestamp": time.time(),
+                            "retry_count": reconnect_attempts,
+                            "heartbeats_sent": heartbeat_count,
+                        }
+                    )
+                except Exception as cb_error:
+                    logging.error(f"Error in heartbeat error callback: {cb_error}")
+        finally:
+            # Cleanup - remove from tracking structures
+            with self.lock:
+                self._active_heartbeats.pop(message_id, None)
+                self._heartbeat_control.pop(message_id, None)
+                # Keep metrics for observability, but mark as ended
+                if message_id in self._heartbeat_metrics:
+                    self._heartbeat_metrics[message_id]["ended_at"] = time.time()
+                    self._heartbeat_metrics[message_id]["total_heartbeats"] = heartbeat_count
+
+            logging.info(
+                f"Heartbeat thread stopped for message {message_id}. "
+                f"Total heartbeats sent: {heartbeat_count}, "
+                f"Duration: {time.time() - start_time:.1f}s"
+            )
+
+    def __manage_heartbeats(self):
+        """
+        DEPRECATED: Legacy heartbeat manager method.
+
+        This method is kept for backward compatibility but is no longer used.
+        The new implementation uses __send_heartbeat_for_message with a thread pool.
+        """
+        logging.warning("Legacy __manage_heartbeats called - this method is deprecated")
         while self._heartbeat_data and not self._stop_heartbeat.is_set():
             item = self._heartbeat_data.popleft()
             reconnect_attempts = 0
             if not isinstance(item, dict):
                 logging.error(f"Unexpected item in heartbeat_data: {item}")
-                continue  # Skip this iteration and move to the next item
+                continue
             while reconnect_attempts < item.get("max_reconnect_attempts", 3):
                 try:
                     heartbeat_request = request_response_pb2.SendMessageHeartBeatRequest(
@@ -431,11 +641,10 @@ class ChronoqueueClient:
                     if heartbeat_resp.state != Message.Metadata.State.RUNNING:
                         break
                     time.sleep(item.get("heartbeat_frequency", 1))
-                    reconnect_attempts = 0  # reset the counter if sending was successful
+                    reconnect_attempts = 0
                 except grpc.RpcError as e:
-                    # Handle errors with exponential back-off
                     reconnect_attempts += 1
-                    backoff_time = (2**reconnect_attempts) + randint(1, 10)  # exponential back-off with jitter
+                    backoff_time = (2**reconnect_attempts) + randint(1, 10)
                     time.sleep(backoff_time)
 
     def acknowledge_message(self, params: AcknowledgeMessageParams, error_handler=None) -> ResponseWrapper:
@@ -477,6 +686,12 @@ class ChronoqueueClient:
 
         """
         try:
+            # Stop heartbeat for this message if it's active
+            message_id = params.message_id
+            if message_id in self._heartbeat_control:
+                logging.info(f"Stopping heartbeat for acknowledged message {message_id}")
+                self._heartbeat_control[message_id].set()  # Signal stop
+
             # Send the acknowledgment to Chronoqueue
             ack_request = request_response_pb2.AcknowledgeMessageRequest(
                 message_id=params.message_id, queue_name=params.queue_name, state=params.state
@@ -1610,19 +1825,132 @@ class ChronoqueueClient:
             error = RpcOperationError(f"Failed to get DLQ stats due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
-    def close(self, error_handler=None) -> None:
+    def get_active_heartbeat_count(self) -> int:
         """
-        Gracefully closes the gRPC channel and stops the heartbeat manager.
+        Get the number of messages with currently active heartbeats.
 
-        Closes the gRPC channel used by the SDK to communicate with the Chronoqueue service, ensuring
-        that resources are released and open connections to the service are terminated. If the SDK
-        is configured to manage message heartbeats, it also stops the heartbeat manager thread. It is
-        recommended to invoke this method when the SDK is no longer needed, such as when your
-        application is terminating, to cleanly shut down the SDK components. If an error occurs during
-        the closing process, it can be handled using a custom error handler or the SDK's default mechanism.
+        Returns:
+        -------
+        int
+            The count of messages that have active heartbeat threads running.
+
+        Example:
+        --------
+        >>> count = client.get_active_heartbeat_count()
+        >>> print(f"Active heartbeats: {count}")
+        """
+        with self.lock:
+            return len(self._active_heartbeats)
+
+    def get_heartbeat_stats(self) -> Dict[str, dict]:
+        """
+        Get detailed statistics for all heartbeats (active and recently completed).
+
+        Returns a dictionary mapping message IDs to their heartbeat metrics, including:
+        - message_id: The message identifier
+        - queue_name: The queue containing the message
+        - started_at: Timestamp when heartbeat started
+        - heartbeats_sent: Number of successful heartbeats sent
+        - heartbeats_failed: Number of failed heartbeat attempts
+        - last_heartbeat_at: Timestamp of last successful heartbeat
+        - last_error: Last error message (if any)
+        - ended_at: Timestamp when heartbeat ended (if completed)
+        - total_heartbeats: Total heartbeats sent (if completed)
+
+        Returns:
+        -------
+        Dict[str, dict]
+            Dictionary of heartbeat metrics keyed by message_id.
+
+        Example:
+        --------
+        >>> stats = client.get_heartbeat_stats()
+        >>> for msg_id, metrics in stats.items():
+        ...     print(f"Message {msg_id}: {metrics['heartbeats_sent']} heartbeats sent")
+        """
+        with self.lock:
+            return dict(self._heartbeat_metrics)
+
+    def get_active_heartbeats(self) -> Dict[str, dict]:
+        """
+        Get information about currently active heartbeats.
+
+        Returns a dictionary mapping message IDs to their heartbeat info, including:
+        - queue_name: The queue containing the message
+        - started_at: Timestamp when heartbeat started
+        - heartbeat_frequency: Interval between heartbeats in seconds
+
+        Returns:
+        -------
+        Dict[str, dict]
+            Dictionary of active heartbeat info keyed by message_id.
+
+        Example:
+        --------
+        >>> active = client.get_active_heartbeats()
+        >>> for msg_id, info in active.items():
+        ...     duration = time.time() - info['started_at']
+        ...     print(f"Message {msg_id} heartbeat running for {duration:.1f}s")
+        """
+        with self.lock:
+            return {
+                msg_id: {
+                    "queue_name": info["queue_name"],
+                    "started_at": info["started_at"],
+                    "heartbeat_frequency": info["heartbeat_frequency"],
+                    "duration": time.time() - info["started_at"],
+                }
+                for msg_id, info in self._active_heartbeats.items()
+            }
+
+    def stop_heartbeat(self, message_id: str) -> bool:
+        """
+        Manually stop the heartbeat for a specific message.
+
+        This can be used to stop heartbeats before acknowledging a message,
+        or to stop heartbeats for messages that are no longer being processed.
 
         Parameters:
         ----------
+        message_id : str
+            The unique identifier of the message whose heartbeat should be stopped.
+
+        Returns:
+        -------
+        bool
+            True if heartbeat was stopped, False if no active heartbeat for this message.
+
+        Example:
+        --------
+        >>> if client.stop_heartbeat("msg-123"):
+        ...     print("Heartbeat stopped")
+        ... else:
+        ...     print("No active heartbeat for this message")
+        """
+        with self.lock:
+            if message_id in self._heartbeat_control:
+                logging.info(f"Manually stopping heartbeat for message {message_id}")
+                self._heartbeat_control[message_id].set()
+                return True
+            return False
+
+    def close(self, timeout: float = 30.0, error_handler=None) -> None:
+        """
+        Gracefully closes the gRPC channel and stops all active heartbeats.
+
+        Closes the gRPC channel used by the SDK to communicate with the Chronoqueue service, ensuring
+        that resources are released and open connections to the service are terminated. This method
+        also stops all active heartbeat threads gracefully by signaling them to stop and waiting
+        for them to complete within the specified timeout. It is recommended to invoke this method
+        when the SDK is no longer needed, such as when your application is terminating, to cleanly
+        shut down the SDK components.
+
+        Parameters:
+        ----------
+        timeout : float, optional
+            Maximum time in seconds to wait for heartbeats to stop, by default 30.0.
+            If heartbeats don't stop within this time, they will be forcefully terminated.
+
         error_handler : callable, optional
             A custom error handling function that will be invoked if an error occurs during the operation.
             The function should accept a single argument, which is the error/exception object.
@@ -1642,18 +1970,42 @@ class ChronoqueueClient:
         >>> client = ChronoqueueClient(host="localhost", port=50051)
         >>> # ... perform operations ...
         >>> client.close()
+        >>> # Or with custom timeout:
+        >>> client.close(timeout=60.0)
         """
         try:
+            logging.info("Closing ChronoqueueClient, stopping all heartbeats...")
+
+            # Signal all active heartbeats to stop
+            with self.lock:
+                active_count = len(self._heartbeat_control)
+                if active_count > 0:
+                    logging.info(f"Signaling {active_count} active heartbeat(s) to stop")
+                    for message_id, stop_event in self._heartbeat_control.items():
+                        stop_event.set()
+
+            # Shutdown thread pool gracefully
+            logging.info("Shutting down heartbeat thread pool...")
+            self._heartbeat_executor.shutdown(wait=True)
+            # Note: ThreadPoolExecutor.shutdown doesn't support timeout parameter
+            # If we need timeout, we would need to implement it differently
+
+            # Legacy support - stop old heartbeat thread if it exists
+            if hasattr(self, "_heartbeat_manager_thread") and self._heartbeat_manager_thread.is_alive():
+                self._stop_heartbeat.set()
+                self._heartbeat_manager_thread.join(timeout=5.0)
+
+            # Close gRPC channel
             if (
                 self.channel
                 and self.channel._channel.check_connectivity_state(True) != grpc.ChannelConnectivity.SHUTDOWN
             ):
-                # Signal the heartbeat thread to stop
-                self._stop_heartbeat.set()
-                # Wait for the heartbeat thread to finish
-                self._heartbeat_manager_thread.join()
-                return self.channel.close()
-        except grpc.RpcError as e:
-            logging.error(f"Error closing rpc channel: {e.details()}")
-            error = RpcOperationError(f"Failed to close RPC channel due to: {e.details()}")
+                logging.info("Closing gRPC channel")
+                self.channel.close()
+
+            logging.info("ChronoqueueClient closed successfully")
+
+        except Exception as e:
+            logging.error(f"Error closing client: {e}")
+            error = RpcOperationError(f"Failed to close client due to: {e}")
             self._handle_error(error, handler=error_handler)
