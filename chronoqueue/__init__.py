@@ -3,7 +3,7 @@ Chronoqueue Python SDK
 
 A Python client library for interacting with the Chronoqueue distributed task queue service.
 
-Basic Usage:
+Basic Usage (Synchronous):
     >>> from chronoqueue import ChronoqueueClient
     >>> from chronoqueue.utils import PostMessageParams
     >>>
@@ -15,10 +15,23 @@ Basic Usage:
     >>> # Or with Pydantic (requires: pip install pydantic)
     >>> msg = response.to_model()  # Typed model output
 
+Async Usage:
+    >>> import asyncio
+    >>> from chronoqueue import AsyncChronoqueueClient
+    >>> from chronoqueue.utils import PostMessageParams
+    >>>
+    >>> async def main():
+    ...     async with AsyncChronoqueueClient(host='localhost', port=50051, use_tls=False) as client:
+    ...         msg = await client.get_next_message("queue", "5m", enable_heartbeat=True)
+    ...         # Process message...
+    ...         await client.acknowledge_message(params)
+    >>> asyncio.run(main())
+
 For more information, see the documentation at:
 https://github.com/adrien19/chronoqueue-pythonsdk
 """
 
+from .async_client import AsyncChronoqueueClient
 from .client import ChronoqueueClient
 from .exceptions import InitializationError, RpcOperationError
 from .utils import (
@@ -80,8 +93,9 @@ try:
     )
 
     __all__ = [
-        # Client
+        # Clients
         "ChronoqueueClient",
+        "AsyncChronoqueueClient",
         # Utils and params
         "TlsConfig",
         "PostMessageParams",
@@ -144,8 +158,9 @@ try:
 except ImportError:
     # Pydantic not available - export only non-model types
     __all__ = [
-        # Client
+        # Clients
         "ChronoqueueClient",
+        "AsyncChronoqueueClient",
         # Utils and params
         "TlsConfig",
         "PostMessageParams",

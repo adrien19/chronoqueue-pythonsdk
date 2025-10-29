@@ -1,0 +1,53 @@
+
+services:
+  chronoqueuesvc:
+    container_name: chronoqueue_container
+    image: ghcr.io/adrien19/chronoqueue:latest
+    # env_file: .env
+    environment:
+      - SERVER_MODE=development
+      - REDIS_ADDR=cachesvc:6379
+      - REDIS_PASSWORD=
+      - REDIS_USERNAME=
+      - REDIS_DB=0
+      - REDIS_TLS_ENABLED=false
+      - SERVER_CERT_PATH=/secrets/server.crt
+      - SERVER_KEY_PATH=/secrets/server.key
+      - CA_CERT_PATH=/secrets/ca.crt
+      - CHRONOQUEUE_TLS_ENABLED=false
+      - ENABLE_ENCRYPTION=true
+      - ENCRYPTION_KEY_SOURCE_TYPE=LOCAL
+      - ENCRYPTION_KEY=0123456789abcdef0123456789abcdef
+      - LOG_LEVEL=debug
+      - LOG_FORMAT=text
+    depends_on:
+      - cachesvc
+    networks:
+      - chronoqueue_network
+    volumes:
+      - ../certs:/secrets
+    ports:
+      - "9000:9000"
+      - "8080:8080"
+
+  cachesvc:
+    image: redis/redis-stack:latest
+    container_name: cachesvc_container
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - '7379:6379'
+      - '8001:8001'
+    networks:
+      - chronoqueue_network
+    volumes: 
+      - cachesvc:/data
+    restart: unless-stopped
+
+networks:
+  chronoqueue_network:
+    name: chronoqueue_network
+    driver: bridge
+
+volumes:
+    cachesvc:
