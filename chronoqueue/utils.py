@@ -135,7 +135,6 @@ class PostMessageOptions:
     lease_duration : str, optional (default="0s")
         Duration for which the message should be processed for by a worker. Must be in format "[number]unit",
         for example: "5s", "2m", "3.5m", or "3d".
-    invisibility_duration : str, optional (default="0s")
         Duration for which the message should remain invisible. Must be in format "[number]unit",
         for example: "5s", "2m", "3.5m", or "3d".
     max_attempts : int, optional (default=3)
@@ -147,7 +146,6 @@ class PostMessageOptions:
     priority: int = 0
     state: MessageState = MessageState.INVISIBLE
     lease_duration: str = "1s"
-    invisibility_duration: str = "0s"
     max_attempts: int = 0
     data_metadata: Dict = field(default_factory=dict)
 
@@ -155,8 +153,6 @@ class PostMessageOptions:
         duration_pattern = re.compile(r"^\d+(\.\d+)?[smhd]$")
         if self.lease_duration and not duration_pattern.match(self.lease_duration):
             raise ValueError("lease_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
-        if not duration_pattern.match(self.invisibility_duration):
-            raise ValueError("invisibility_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
 
 
 @dataclass
@@ -195,11 +191,14 @@ class AcknowledgeMessageParams:
         Name of the queue containing the message.
     state : MessageState
         Updated state for the message.
+    stream_entry_id : str, optional
+        The stream entry ID returned from GetNextMessage. Required for proper message acknowledgment.
     """
 
     message_id: str
     state: MessageState
     queue_name: str = "default_queue"
+    stream_entry_id: str = ""
 
 
 @dataclass
@@ -266,9 +265,6 @@ class QueueOptions:
     type : QueueType, default[SIMPLE]
         The type of queue to be created. It can be SIMPLE or EXCLUSIVE.
 
-    exclusivity_key : Optional[str]
-        The key used to ensure message exclusivity in the queue.
-
     max_attempts : Optional[int]
         The number of times a message can be dequeued before it is considered failed.
 
@@ -276,23 +272,47 @@ class QueueOptions:
         The duration a message remains leased after being dequeued. Must be in format "[number]unit",
         for example: "5s", "2m", "3.5m", or "3d".
 
-    invisibility_duration : Optional[str]
-        The duration a message remains invisible in the queue before being dequeued. Must be in format "[number]unit",
-        for example: "5s", "2m", "3.5m", or "3d".
+    exclusivity_key : Optional[str]
+        The key used to ensure message exclusivity in the queue.
+
+    dead_letter_queue_name : Optional[str]
+        Name of the dead letter queue for messages that exhaust retries.
+
+    auto_create_dlq : Optional[bool]
+        If true, automatically create the DLQ if it doesn't exist.
+
+    schema_id : Optional[str]
+        Default schema for validating messages posted to this queue.
+
+    schema_required : Optional[bool]
+        If true, all messages must have a valid schema and pass validation.
+
+    max_payload_size : Optional[int]
+        Maximum size of message payload in bytes.
+
+    allowed_content_types : Optional[list]
+        List of permitted MIME types for message payloads.
+
+    priority_config : Optional[dict]
+        Advanced priority scheduling configuration.
     """
 
-    max_attempts: Optional[int]
-    lease_duration: Optional[str]
-    invisibility_duration: Optional[str]
+    max_attempts: Optional[int] = None
+    lease_duration: Optional[str] = None
     type: QueueType = QueueType.SIMPLE
     exclusivity_key: Optional[str] = ""
+    dead_letter_queue_name: Optional[str] = ""
+    auto_create_dlq: Optional[bool] = True
+    schema_id: Optional[str] = ""
+    schema_required: Optional[bool] = False
+    max_payload_size: Optional[int] = 0
+    allowed_content_types: Optional[list] = None
+    priority_config: Optional[dict] = None
 
     def __post_init__(self):
         duration_pattern = re.compile(r"^\d+(\.\d+)?[smhd]$")
         if self.lease_duration and not duration_pattern.match(self.lease_duration):
             raise ValueError("lease_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
-        if self.invisibility_duration and not duration_pattern.match(self.invisibility_duration):
-            raise ValueError("invisibility_duration must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'.")
 
 
 @dataclass
@@ -415,7 +435,6 @@ def _create_post_message_request(params: PostMessageParams) -> PostMessageReques
                 params.options.state.value if isinstance(params.options.state, MessageState) else params.options.state
             ),
             lease_duration=string_to_duration(params.options.lease_duration),
-            invisibility_duration=string_to_duration(params.options.invisibility_duration),
             max_attempts=params.options.max_attempts,
             priority=params.options.priority,
         )

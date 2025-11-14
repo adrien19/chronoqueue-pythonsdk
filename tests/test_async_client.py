@@ -74,7 +74,6 @@ async def test_create_queue_success(async_client):
         max_attempts=5,
         lease_duration="5m",
         exclusivity_key="test_key",
-        invisibility_duration="30s",
     )
 
     response = await async_client.create_queue("test_queue", options)

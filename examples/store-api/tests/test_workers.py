@@ -32,7 +32,7 @@ class TestStoreCartWorker:
         mock_response.to_dict.return_value = {"message_id": "test-123", "status": "queued"}
         mock_client.post_message.return_value = mock_response
 
-        await process_cart(sample_cart, mock_client)
+        await process_cart("cart-123", sample_cart, mock_client)
 
         # Verify post_message was called
         assert mock_client.post_message.called
@@ -47,7 +47,7 @@ class TestStoreCartWorker:
         mock_client.post_message.side_effect = Exception("Connection failed")
 
         # Should not raise exception, but log error
-        await process_cart(sample_cart, mock_client)
+        await process_cart("cart-456", sample_cart, mock_client)
 
         # Check error was logged
         assert "Error occurred in process_card" in caplog.text
@@ -72,7 +72,7 @@ class TestQueueManagerWorker:
 
         options = call_args.kwargs["options"]
         assert options.type == QueueType.SIMPLE
-        assert options.dequeue_attempts == 2
+        assert options.max_attempts == 2
 
     @pytest.mark.asyncio
     async def test_create_store_cart_queue_error(self, mock_client, caplog):
@@ -101,7 +101,7 @@ class TestQueueManagerWorker:
         options = call_args.kwargs["options"]
         assert options.type == QueueType.EXCLUSIVE
         assert options.exclusivity_key == "checkout-worker-1"
-        assert options.dequeue_attempts == 1
+        assert options.max_attempts == -1
 
     @pytest.mark.asyncio
     async def test_create_checkout_cart_queue_error(self, mock_client, caplog):

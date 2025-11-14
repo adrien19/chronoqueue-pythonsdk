@@ -16,7 +16,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb2
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x1aproto/queue/v1/queue.proto\x12\x18\x63hronoqueue.api.queue.v1\x1a\x1egoogle/protobuf/duration.proto"\x84\x03\n\rQueueMetadata\x12\x31\n\x04type\x18\x01 \x01(\x0e\x32#.chronoqueue.api.queue.v1.QueueType\x12\x1c\n\x14\x64\x65\x66\x61ult_max_attempts\x18\x02 \x01(\x05\x12\x31\n\x0elease_duration\x18\x03 \x01(\x0b\x32\x19.google.protobuf.Duration\x12\x17\n\x0f\x65xclusivity_key\x18\x04 \x01(\t\x12\x38\n\x15invisibility_duration\x18\x05 \x01(\x0b\x32\x19.google.protobuf.Duration\x12\x1e\n\x16\x64\x65\x61\x64_letter_queue_name\x18\x06 \x01(\t\x12\x17\n\x0f\x61uto_create_dlq\x18\x07 \x01(\x08\x12\x11\n\tschema_id\x18\x08 \x01(\t\x12\x17\n\x0fschema_required\x18\t \x01(\x08\x12\x18\n\x10max_payload_size\x18\n \x01(\x05\x12\x1d\n\x15\x61llowed_content_types\x18\x0b \x03(\t"P\n\x05Queue\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x39\n\x08metadata\x18\x02 \x01(\x0b\x32\'.chronoqueue.api.queue.v1.QueueMetadata*&\n\tQueueType\x12\n\n\x06SIMPLE\x10\x00\x12\r\n\tEXCLUSIVE\x10\x01\x42\x34Z2github.com/adrien19/chronoqueue/api/queue/v1;queueb\x06proto3'
+    b'\n\x1aproto/queue/v1/queue.proto\x12\x18\x63hronoqueue.api.queue.v1\x1a\x1egoogle/protobuf/duration.proto"\xaa\x03\n\rQueueMetadata\x12\x31\n\x04type\x18\x01 \x01(\x0e\x32#.chronoqueue.api.queue.v1.QueueType\x12\x1c\n\x14\x64\x65\x66\x61ult_max_attempts\x18\x02 \x01(\x05\x12\x31\n\x0elease_duration\x18\x03 \x01(\x0b\x32\x19.google.protobuf.Duration\x12\x17\n\x0f\x65xclusivity_key\x18\x04 \x01(\t\x12\x1e\n\x16\x64\x65\x61\x64_letter_queue_name\x18\x06 \x01(\t\x12\x17\n\x0f\x61uto_create_dlq\x18\x07 \x01(\x08\x12\x11\n\tschema_id\x18\x08 \x01(\t\x12\x17\n\x0fschema_required\x18\t \x01(\x08\x12\x18\n\x10max_payload_size\x18\n \x01(\x05\x12\x1d\n\x15\x61llowed_content_types\x18\x0b \x03(\t\x12\x41\n\x0fpriority_config\x18\x0c \x01(\x0b\x32(.chronoqueue.api.queue.v1.PriorityConfigJ\x04\x08\x05\x10\x06R\x15invisibility_duration"\xb1\x02\n\x0ePriorityConfig\x12\x38\n\x06policy\x18\x01 \x01(\x0e\x32(.chronoqueue.api.queue.v1.FairnessPolicy\x12W\n\x10priority_weights\x18\x02 \x03(\x0b\x32=.chronoqueue.api.queue.v1.PriorityConfig.PriorityWeightsEntry\x12\x36\n\x13\x61ge_boost_threshold\x18\x03 \x01(\x0b\x32\x19.google.protobuf.Duration\x12\x1c\n\x14\x61ge_boost_multiplier\x18\x04 \x01(\x05\x1a\x36\n\x14PriorityWeightsEntry\x12\x0b\n\x03key\x18\x01 \x01(\x05\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01"P\n\x05Queue\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x39\n\x08metadata\x18\x02 \x01(\x0b\x32\'.chronoqueue.api.queue.v1.QueueMetadata*&\n\tQueueType\x12\n\n\x06SIMPLE\x10\x00\x12\r\n\tEXCLUSIVE\x10\x01*A\n\x0e\x46\x61irnessPolicy\x12\n\n\x06STRICT\x10\x00\x12\x0c\n\x08WEIGHTED\x10\x01\x12\t\n\x05\x41GING\x10\x02\x12\n\n\x06HYBRID\x10\x03\x42\x34Z2github.com/adrien19/chronoqueue/api/queue/v1;queueb\x06proto3'
 )
 
 _globals = globals()
@@ -25,10 +25,18 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "proto.queue.v1.queue_pb2", 
 if _descriptor._USE_C_DESCRIPTORS == False:
     _globals["DESCRIPTOR"]._options = None
     _globals["DESCRIPTOR"]._serialized_options = b"Z2github.com/adrien19/chronoqueue/api/queue/v1;queue"
-    _globals["_QUEUETYPE"]._serialized_start = 561
-    _globals["_QUEUETYPE"]._serialized_end = 599
+    _globals["_PRIORITYCONFIG_PRIORITYWEIGHTSENTRY"]._options = None
+    _globals["_PRIORITYCONFIG_PRIORITYWEIGHTSENTRY"]._serialized_options = b"8\001"
+    _globals["_QUEUETYPE"]._serialized_start = 907
+    _globals["_QUEUETYPE"]._serialized_end = 945
+    _globals["_FAIRNESSPOLICY"]._serialized_start = 947
+    _globals["_FAIRNESSPOLICY"]._serialized_end = 1012
     _globals["_QUEUEMETADATA"]._serialized_start = 89
-    _globals["_QUEUEMETADATA"]._serialized_end = 477
-    _globals["_QUEUE"]._serialized_start = 479
-    _globals["_QUEUE"]._serialized_end = 559
+    _globals["_QUEUEMETADATA"]._serialized_end = 515
+    _globals["_PRIORITYCONFIG"]._serialized_start = 518
+    _globals["_PRIORITYCONFIG"]._serialized_end = 823
+    _globals["_PRIORITYCONFIG_PRIORITYWEIGHTSENTRY"]._serialized_start = 769
+    _globals["_PRIORITYCONFIG_PRIORITYWEIGHTSENTRY"]._serialized_end = 823
+    _globals["_QUEUE"]._serialized_start = 825
+    _globals["_QUEUE"]._serialized_end = 905
 # @@protoc_insertion_point(module_scope)

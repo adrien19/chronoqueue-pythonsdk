@@ -78,7 +78,7 @@ async def process_store_cart(client: ChronoqueueClient):
                 logger.info("✅ Processing completed after 60s")
 
                 post_msg_options = PostMessageOptions(
-                    state=MessageState.INVISIBLE.value, invisibility_duration="1m", max_attempts=2
+                    state=MessageState.INVISIBLE.value, max_attempts=2
                 )
                 post_msg_params = PostMessageParams(
                     queue_name=QUEUE_NAME_CHECKOUT_CART,
@@ -94,6 +94,7 @@ async def process_store_cart(client: ChronoqueueClient):
                     message_id=response.message.message_id,
                     queue_name=QUEUE_NAME_STORE_CART,
                     state=MessageState.COMPLETED.value,
+                    stream_entry_id=response.stream_entry_id,
                 )
 
                 if post_resp.get("success"):
@@ -168,6 +169,7 @@ async def process_checkout_cart(client: ChronoqueueClient):
                     message_id=response.message.message_id,
                     queue_name=QUEUE_NAME_CHECKOUT_CART,
                     state=MessageState.COMPLETED.value,
+                    stream_entry_id=response.stream_entry_id,
                 )
                 acknow_resp = client.acknowledge_message(params=params).to_dict()
                 logger.info(f"✅ Message {message_id} acknowledged")
@@ -178,6 +180,7 @@ async def process_checkout_cart(client: ChronoqueueClient):
                     message_id=response.message.message_id,
                     queue_name=QUEUE_NAME_CHECKOUT_CART,
                     state=MessageState.PENDING.value,
+                    stream_entry_id=response.stream_entry_id,
                 )
                 try:
                     acknow_resp = client.acknowledge_message(params=params).to_dict()

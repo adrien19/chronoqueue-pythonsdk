@@ -43,7 +43,6 @@ if PYDANTIC_AVAILABLE:
         attempts_left: int = Field(default=0, description="Remaining processing attempts")
         max_attempts: int = Field(default=0, description="Maximum allowed attempts")
         lease_expiry: Optional[int] = Field(None, description="Lease expiration timestamp")
-        invisibility_expiry: Optional[int] = Field(None, description="Invisibility expiration timestamp")
         lease_renewal_count: int = Field(default=0, description="Number of times lease was renewed")
         payload: Optional["MessagePayload"] = Field(None, description="Message payload")
 

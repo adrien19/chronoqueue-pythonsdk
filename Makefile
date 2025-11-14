@@ -64,18 +64,11 @@ setup-dirs:
 # Update proto definitions from chronoqueue repository
 update-proto: setup-dirs
 	@echo "Downloading proto definitions from chronoqueue repository..."
-	@if [ -z "$$GITHUB_TOKEN" ]; then \
-		echo "Error: GITHUB_TOKEN environment variable is not set"; \
-		echo "Please set it with: export GITHUB_TOKEN=your_github_token"; \
-		echo "You can create a token at: https://github.com/settings/tokens"; \
-		exit 1; \
-	fi
 	@echo "Fetching proto files from $(CHRONOQUEUE_REPO)/$(CHRONOQUEUE_BRANCH)..."
 	@rm -rf /tmp/chronoqueue-proto-download
 	@mkdir -p /tmp/chronoqueue-proto-download
 	@echo "Downloading repository archive..."
-	@curl -sL -H "Authorization: token $$GITHUB_TOKEN" \
-		-H "Accept: application/vnd.github.v3+json" \
+	@curl -sL -H "Accept: application/vnd.github.v3+json" \
 		"https://api.github.com/repos/$(CHRONOQUEUE_REPO)/tarball/$(CHRONOQUEUE_BRANCH)" \
 		-o /tmp/chronoqueue-proto-download/repo.tar.gz
 	@echo "Extracting proto files..."

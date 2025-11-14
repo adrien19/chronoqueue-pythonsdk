@@ -44,7 +44,7 @@ class TestStoreAPI:
         }
 
         with patch("api.routes.store.get_chronoqueue_client", return_value=mock_chronoqueue_client):
-            response = client.post("/store/cart", json=cart_data)
+            response = client.post("/store/cart?cart_id=test-cart-123", json=cart_data)
 
         assert response.status_code == 200
         data = response.json()
