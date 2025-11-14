@@ -68,9 +68,6 @@ pip install grpcio
 2. Update proto definitions from the chronoqueue repository:
 
     ```bash
-    # Set your GitHub token (required for private repo access)
-    export GITHUB_TOKEN=your_github_token
-    
     # Download latest proto definitions
     make update-proto
     ```

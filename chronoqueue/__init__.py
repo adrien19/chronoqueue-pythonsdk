@@ -180,4 +180,10 @@ except ImportError:
         "RpcOperationError",
     ]
 
-__version__ = "0.1.0"
+# Dynamic version from package metadata
+try:
+    from importlib.metadata import version
+    __version__ = version("chronoqueue")
+except Exception:
+    # Fallback for development environment or if package not installed
+    __version__ = "0.1.0"
