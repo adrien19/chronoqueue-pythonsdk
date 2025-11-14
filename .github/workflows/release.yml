@@ -131,9 +131,27 @@ jobs:
           virtualenvs-in-project: true
       
       - name: Set project version with Poetry
-        run: poetry version ${{ needs.details.outputs.new_version }}
+        run: |
+          CURRENT_VERSION=$(poetry version -s)
+          echo "Current version: $CURRENT_VERSION"
+          NEW_VERSION=${{ needs.details.outputs.new_version }}
+          echo "Target version: $NEW_VERSION"
+          poetry version $NEW_VERSION
       
-      - name: Bump version in pyproject.toml
+      - name: Check if version changed
+        id: version_check
+        run: |
+          # Check if the version line in pyproject.toml actually changed
+          if git diff pyproject.toml | grep -q '^[+-]version = '; then
+            echo "Version changed in pyproject.toml"
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version unchanged in pyproject.toml, skipping commit and PR"
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      
+      - name: Commit version bump
+        if: steps.version_check.outputs.version_changed == 'true'
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -143,6 +161,7 @@ jobs:
           git push origin version-bump-${{ needs.details.outputs.new_version }}
       
       - name: Create Pull Request
+        if: steps.version_check.outputs.version_changed == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           branch: version-bump-${{ needs.details.outputs.new_version }}
