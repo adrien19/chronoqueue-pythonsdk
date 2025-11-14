@@ -20,8 +20,7 @@ async def process_cart(cart_id: str, cart: CartItems, client: ChronoqueueClient)
             queue_name=QUEUE_NAME_STORE_CART,
             options=PostMessageOptions(
                 lease_duration="5s",
-                invisibility_duration="3s",
-                max_attempts=3,
+                max_attempts=2,
             ),
         )
 

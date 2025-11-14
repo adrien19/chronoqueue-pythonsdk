@@ -40,7 +40,9 @@ async def process_store_cart_async(async_client: AsyncChronoqueueClient):
             response = await async_client.get_next_message(
                 queue_name=QUEUE_NAME_STORE_CART, lease_duration="5s", enable_heartbeat=True
             )
+            response_proto = response.to_proto()
             message = response.to_model().message
+            stream_entry_id = response_proto.stream_entry_id
 
             if message is None:
                 logger.info("⏸️ [ASYNC] No messages in store-cart queue, waiting...")
@@ -94,11 +96,11 @@ async def process_store_cart_async(async_client: AsyncChronoqueueClient):
             )
 
             post_msg_options = PostMessageOptions(
-                state=MessageState.INVISIBLE.value, invisibility_duration="1m", max_attempts=2
+                state=MessageState.INVISIBLE.value, max_attempts=2
             )
             post_msg_params = PostMessageParams(
                 queue_name=QUEUE_NAME_CHECKOUT_CART,
-                message_id=response.message.message_id,
+                message_id=message.message_id,
                 data=checkout_data,
                 options=post_msg_options,
             )
@@ -112,13 +114,19 @@ async def process_store_cart_async(async_client: AsyncChronoqueueClient):
 
                 # Acknowledge message (this automatically stops the heartbeat asyncio task)
                 ack_params = AcknowledgeMessageParams(
-                    queue_name=QUEUE_NAME_STORE_CART, message_id=message.message_id, state=MessageState.COMPLETED.value
+                    queue_name=QUEUE_NAME_STORE_CART,
+                    message_id=message.message_id,
+                    state=MessageState.COMPLETED.value,
+                    stream_entry_id=stream_entry_id,
                 )
                 await async_client.acknowledge_message(params=ack_params)
             else:
                 logger.error(f"❌ [ASYNC] Failed to post message to checkout: {post_resp}")
                 ack_params = AcknowledgeMessageParams(
-                    queue_name=QUEUE_NAME_STORE_CART, message_id=message.message_id, state=MessageState.FAILED.value
+                    queue_name=QUEUE_NAME_STORE_CART,
+                    message_id=message.message_id,
+                    state=MessageState.FAILED.value,
+                    stream_entry_id=stream_entry_id,
                 )
                 await async_client.acknowledge_message(params=ack_params)
 
@@ -162,6 +170,8 @@ async def process_checkout_cart_async(async_client: AsyncChronoqueueClient):
                 exclusivity_key=CHECKOUT_QUEUE_EXCLUSIVE_KEY,
             )
 
+            response_proto = response.to_proto()
+            stream_entry_id = response_proto.stream_entry_id
             dict_resp = response.to_dict()
             logger.info(f"🔍 [ASYNC] Polling for next message from checkout-cart queue...resp: {dict_resp}")
             message = dict_resp.get("message", None)
@@ -192,6 +202,7 @@ async def process_checkout_cart_async(async_client: AsyncChronoqueueClient):
                 queue_name=QUEUE_NAME_CHECKOUT_CART,
                 message_id=message.get("messageId"),
                 state=MessageState.COMPLETED.value,
+                stream_entry_id=stream_entry_id,
             )
             await async_client.acknowledge_message(params=ack_params)
             logger.info(f"✅ [ASYNC] Checkout {message.get('messageId')[:8]}... completed")

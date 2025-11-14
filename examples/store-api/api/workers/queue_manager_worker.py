@@ -14,7 +14,6 @@ async def create_store_cart_queue(client: ChronoqueueClient):
             exclusivity_key="",
             max_attempts=2,
             lease_duration="1m",
-            invisibility_duration="3s",
         )
 
         response = client.create_queue(name=QUEUE_NAME_STORE_CART, options=queue_options).to_dict()
@@ -31,7 +30,6 @@ async def create_checkout_cart_queue(client: ChronoqueueClient):
             exclusivity_key=CHECKOUT_QUEUE_EXCLUSIVE_KEY,
             max_attempts=-1,  # Unlimited attempts
             lease_duration="5m",
-            invisibility_duration="2s",
         )
 
         response = client.create_queue(name=QUEUE_NAME_CHECKOUT_CART, options=queue_options).to_proto()

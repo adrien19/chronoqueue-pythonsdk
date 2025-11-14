@@ -219,11 +219,22 @@ class AsyncChronoqueueClient:
             if options is not None:
                 metadata = queue_pb2.QueueMetadata(
                     type=options.type.value,
-                    default_max_attempts=options.max_attempts,
-                    lease_duration=string_to_duration(options.lease_duration),
-                    exclusivity_key=options.exclusivity_key,
-                    invisibility_duration=string_to_duration(options.invisibility_duration),
+                    default_max_attempts=options.max_attempts if options.max_attempts is not None else 0,
+                    lease_duration=string_to_duration(options.lease_duration) if options.lease_duration else None,
+                    exclusivity_key=options.exclusivity_key if options.exclusivity_key else "",
+                    dead_letter_queue_name=options.dead_letter_queue_name if options.dead_letter_queue_name else "",
+                    auto_create_dlq=options.auto_create_dlq if options.auto_create_dlq is not None else False,
+                    schema_id=options.schema_id if options.schema_id else "",
+                    schema_required=options.schema_required if options.schema_required is not None else False,
+                    max_payload_size=options.max_payload_size if options.max_payload_size is not None else 0,
+                    allowed_content_types=options.allowed_content_types if options.allowed_content_types else [],
                 )
+                # Add priority_config if provided
+                if options.priority_config:
+                    # Convert priority_config dict to protobuf
+                    from google.protobuf import json_format
+                    priority_config_pb = json_format.ParseDict(options.priority_config, queue_pb2.PriorityConfig())
+                    metadata.priority_config.CopyFrom(priority_config_pb)
             request = request_response_pb2.CreateQueueRequest(name=name, metadata=metadata)
             response = await self.stub.CreateQueue(request)
             return ResponseWrapper(response_protobuf=response)
@@ -321,6 +332,9 @@ class AsyncChronoqueueClient:
             if message_id:
                 logging.info(f"Starting async heartbeat for message {message_id} on queue {queue_name}")
 
+                # Extract stream_entry_id from response
+                stream_entry_id = resp_dict.get("streamEntryId", "") or resp_dict.get("stream_entry_id", "")
+
                 heartbeat_frequency = resp_dict.get("heartbeat_frequency", 1)
                 max_reconnect_attempts = resp_dict.get("max_reconnect_attempts", 3)
 
@@ -335,6 +349,7 @@ class AsyncChronoqueueClient:
                             self._heartbeat_loop(
                                 message_id=message_id,
                                 queue_name=queue_name,
+                                stream_entry_id=stream_entry_id,
                                 stop_event=stop_event,
                                 heartbeat_frequency=heartbeat_frequency,
                                 max_reconnect_attempts=max_reconnect_attempts,
@@ -345,6 +360,7 @@ class AsyncChronoqueueClient:
                         self._heartbeat_metrics[message_id] = {
                             "message_id": message_id,
                             "queue_name": queue_name,
+                            "stream_entry_id": stream_entry_id,
                             "started_at": time.time(),
                             "heartbeats_sent": 0,
                             "heartbeats_failed": 0,
@@ -360,6 +376,7 @@ class AsyncChronoqueueClient:
         self,
         message_id: str,
         queue_name: str,
+        stream_entry_id: str,
         stop_event: asyncio.Event,
         heartbeat_frequency: int,
         max_reconnect_attempts: int,
@@ -393,7 +410,7 @@ class AsyncChronoqueueClient:
 
                 try:
                     request = request_response_pb2.SendMessageHeartBeatRequest(
-                        queue_name=queue_name, message_id=message_id
+                        queue_name=queue_name, message_id=message_id, stream_entry_id=stream_entry_id
                     )
                     response = await self.stub.SendMessageHeartBeat(request)
 
@@ -518,7 +535,10 @@ class AsyncChronoqueueClient:
             self._heartbeat_stop_events[message_id].set()
 
         request = request_response_pb2.AcknowledgeMessageRequest(
-            message_id=params.message_id, queue_name=params.queue_name, state=params.state
+            message_id=params.message_id,
+            queue_name=params.queue_name,
+            state=params.state,
+            stream_entry_id=params.stream_entry_id,
         )
         response = await self.stub.AcknowledgeMessage(request)
         return ResponseWrapper(response_protobuf=response)
@@ -675,7 +695,9 @@ class AsyncChronoqueueClient:
             error = RpcOperationError(f"Failed to get queue state due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
 
-    async def send_message_heartbeat(self, queue_name: str, message_id: str, error_handler=None) -> ResponseWrapper:
+    async def send_message_heartbeat(
+        self, queue_name: str, message_id: str, stream_entry_id: str = "", error_handler=None
+    ) -> ResponseWrapper:
         """
         Send a single heartbeat for a message to extend its lease.
 
@@ -685,6 +707,8 @@ class AsyncChronoqueueClient:
             The name of the queue containing the message.
         message_id : str
             The unique identifier for the message.
+        stream_entry_id : str, optional
+            The stream entry ID returned from GetNextMessage. Required for proper heartbeat tracking.
         error_handler : callable, optional
             Custom error handling function.
 
@@ -700,10 +724,12 @@ class AsyncChronoqueueClient:
 
         Example:
         --------
-        >>> await client.send_message_heartbeat("my_queue", "msg123")
+        >>> await client.send_message_heartbeat("my_queue", "msg123", "1-0")
         """
         try:
-            request = request_response_pb2.SendMessageHeartBeatRequest(queue_name=queue_name, message_id=message_id)
+            request = request_response_pb2.SendMessageHeartBeatRequest(
+                queue_name=queue_name, message_id=message_id, stream_entry_id=stream_entry_id
+            )
             response = await self.stub.SendMessageHeartbeat(request)
             return ResponseWrapper(response_protobuf=response)
         except grpc.RpcError as e:

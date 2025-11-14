@@ -32,9 +32,9 @@ async def create_store_cart_queue_async(async_client: AsyncChronoqueueClient):
             await async_client.create_queue(
                 name=QUEUE_NAME_STORE_CART,
                 options=QueueOptions(
+                    type=QueueType.SIMPLE,
                     max_attempts=max_retries,
                     lease_duration="5s",
-                    invisibility_duration="1m",
                 ),
             )
 
@@ -73,9 +73,9 @@ async def create_checkout_cart_queue_async(async_client: AsyncChronoqueueClient)
             await async_client.create_queue(
                 name=QUEUE_NAME_CHECKOUT_CART,
                 options=QueueOptions(
+                    type=QueueType.EXCLUSIVE,
                     max_attempts=max_retries,
                     lease_duration="5s",
-                    invisibility_duration="1m",
                     exclusivity_key=CHECKOUT_QUEUE_EXCLUSIVE_KEY,
                 ),
             )
