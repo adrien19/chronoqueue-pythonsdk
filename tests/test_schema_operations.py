@@ -55,7 +55,7 @@ class TestSchemaOperations(unittest.TestCase):
         mock_response = request_response_pb2.RegisterSchemaResponse(schema_id="test", version=1)
         self.mock_stub.RegisterSchema.return_value = mock_response
 
-        result = self.client.register_schema("test_schema", options)
+        self.client.register_schema("test_schema", options)  # noqa: F841
 
         call_args = self.mock_stub.RegisterSchema.call_args[0][0]
         self.assertEqual(call_args.content_type, "json-schema")
@@ -74,7 +74,7 @@ class TestSchemaOperations(unittest.TestCase):
         mock_response = request_response_pb2.GetSchemaResponse(schema=mock_schema)
         self.mock_stub.GetSchema.return_value = mock_response
 
-        result = self.client.get_schema("order_schema")
+        self.client.get_schema("order_schema")  # noqa: F841
 
         self.mock_stub.GetSchema.assert_called_once()
         call_args = self.mock_stub.GetSchema.call_args[0][0]
@@ -87,7 +87,7 @@ class TestSchemaOperations(unittest.TestCase):
         mock_response = request_response_pb2.GetSchemaResponse(schema=mock_schema)
         self.mock_stub.GetSchema.return_value = mock_response
 
-        result = self.client.get_schema("order_schema", version=2)
+        self.client.get_schema("order_schema", version=2)  # noqa: F841
 
         call_args = self.mock_stub.GetSchema.call_args[0][0]
         self.assertEqual(call_args.version, 2)
@@ -97,7 +97,7 @@ class TestSchemaOperations(unittest.TestCase):
         mock_response = request_response_pb2.ListSchemasResponse(total_count=0)
         self.mock_stub.ListSchemas.return_value = mock_response
 
-        result = self.client.list_schemas()
+        self.client.list_schemas()  # noqa: F841
 
         self.mock_stub.ListSchemas.assert_called_once()
         call_args = self.mock_stub.ListSchemas.call_args[0][0]
@@ -110,7 +110,7 @@ class TestSchemaOperations(unittest.TestCase):
         mock_response = request_response_pb2.ListSchemasResponse(total_count=5)
         self.mock_stub.ListSchemas.return_value = mock_response
 
-        result = self.client.list_schemas(prefix="order_", limit=50, active_only=True)
+        self.client.list_schemas(prefix="order_", limit=50, active_only=True)  # noqa: F841
 
         call_args = self.mock_stub.ListSchemas.call_args[0][0]
         self.assertEqual(call_args.prefix, "order_")
@@ -122,7 +122,7 @@ class TestSchemaOperations(unittest.TestCase):
         mock_response = request_response_pb2.DeleteSchemaResponse(success=True, versions_deleted=1)
         self.mock_stub.DeleteSchema.return_value = mock_response
 
-        result = self.client.delete_schema("order_schema", version=1)
+        self.client.delete_schema("order_schema", version=1)  # noqa: F841
 
         self.mock_stub.DeleteSchema.assert_called_once()
         call_args = self.mock_stub.DeleteSchema.call_args[0][0]
@@ -134,7 +134,7 @@ class TestSchemaOperations(unittest.TestCase):
         mock_response = request_response_pb2.DeleteSchemaResponse(success=True, versions_deleted=3)
         self.mock_stub.DeleteSchema.return_value = mock_response
 
-        result = self.client.delete_schema("order_schema")
+        self.client.delete_schema("order_schema")  # noqa: F841
 
         call_args = self.mock_stub.DeleteSchema.call_args[0][0]
         self.assertEqual(call_args.version, 0)  # 0 means all versions
@@ -149,7 +149,7 @@ class TestSchemaOperations(unittest.TestCase):
         )
         self.mock_stub.ValidatePayload.return_value = mock_response
 
-        result = self.client.validate_payload("order_schema", payload)
+        self.client.validate_payload("order_schema", payload)  # noqa: F841
 
         self.mock_stub.ValidatePayload.assert_called_once()
         call_args = self.mock_stub.ValidatePayload.call_args[0][0]
@@ -167,7 +167,7 @@ class TestSchemaOperations(unittest.TestCase):
         )
         self.mock_stub.ValidatePayload.return_value = mock_response
 
-        result = self.client.validate_payload("order_schema", payload, version=2)
+        self.client.validate_payload("order_schema", payload, version=2)  # noqa: F841
 
         call_args = self.mock_stub.ValidatePayload.call_args[0][0]
         self.assertEqual(call_args.version, 2)

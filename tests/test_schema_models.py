@@ -3,7 +3,6 @@ Unit tests for schema Pydantic models.
 """
 
 import unittest
-from unittest.mock import MagicMock
 
 from chronoqueue.api.queueservice.v1 import request_response_pb2
 from chronoqueue.api.schema.v1 import schema_pb2

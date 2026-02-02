@@ -21,8 +21,7 @@ This example demonstrates:
 4. **Observability** - Monitor active heartbeats, statistics, and errors
 5. **Concurrency** - Thread pool (sync) or asyncio tasks (async) for multiple messages
 6. **Safety Limits** - Max duration and count prevent infinite loops
-7. **Error Callbacks** - Get notified when heartbeats fail
-
+7. **Error Callbacks** - Get notified when heartbeats fail8. **Queue Discovery** - List all queues with `list_queues()` method for monitoring and debugging
 ### Sync vs Async
 
 | Feature | Sync Client | Async Client |

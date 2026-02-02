@@ -73,7 +73,7 @@ async def process_store_cart(client: ChronoqueueClient):
                 logger.info("⏳ Simulating 60s processing time (heartbeat keeps message alive)...")
                 logger.info("   💓 Heartbeat is automatically renewing the message lease every ~1s")
 
-                time.sleep(60)
+                time.sleep(360) # Simulate long processing (60 seconds)
 
                 logger.info("✅ Processing completed after 60s")
 
@@ -94,7 +94,8 @@ async def process_store_cart(client: ChronoqueueClient):
                     message_id=response.message.message_id,
                     queue_name=QUEUE_NAME_STORE_CART,
                     state=MessageState.COMPLETED.value,
-                    stream_entry_id=response.stream_entry_id,
+                    worker_id=response.worker_id,
+                    attempt_id=response.attempt_id,
                 )
 
                 if post_resp.get("success"):
@@ -169,7 +170,8 @@ async def process_checkout_cart(client: ChronoqueueClient):
                     message_id=response.message.message_id,
                     queue_name=QUEUE_NAME_CHECKOUT_CART,
                     state=MessageState.COMPLETED.value,
-                    stream_entry_id=response.stream_entry_id,
+                    worker_id=response.worker_id,
+                    attempt_id=response.attempt_id,
                 )
                 acknow_resp = client.acknowledge_message(params=params).to_dict()
                 logger.info(f"✅ Message {message_id} acknowledged")
@@ -180,7 +182,6 @@ async def process_checkout_cart(client: ChronoqueueClient):
                     message_id=response.message.message_id,
                     queue_name=QUEUE_NAME_CHECKOUT_CART,
                     state=MessageState.PENDING.value,
-                    stream_entry_id=response.stream_entry_id,
                 )
                 try:
                     acknow_resp = client.acknowledge_message(params=params).to_dict()

@@ -1,4 +1,7 @@
+import os
 import re
+import socket
+import uuid
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
@@ -7,11 +10,11 @@ from google.protobuf import json_format
 from google.protobuf.duration_pb2 import Duration
 from google.protobuf.struct_pb2 import Struct, Value
 
-from .api.common.v1.common_pb2 import Payload
-from .api.message.v1.message_pb2 import Message
-from .api.queue.v1.queue_pb2 import QueueType
-from .api.queueservice.v1.request_response_pb2 import PostMessageRequest
-from .api.schedule.v1.schedule_pb2 import Schedule
+from .api.common.v1.common_pb2 import Payload  # type: ignore[attr-defined]
+from .api.message.v1.message_pb2 import Message  # type: ignore[attr-defined]
+from .api.queue.v1.queue_pb2 import QueueType  # type: ignore[attr-defined]
+from .api.queueservice.v1.request_response_pb2 import PostMessageRequest  # type: ignore[attr-defined]
+from .api.schedule.v1.schedule_pb2 import Schedule  # type: ignore[attr-defined]
 
 # Import Pydantic models (will handle if not available)
 try:
@@ -20,9 +23,42 @@ try:
     PYDANTIC_AVAILABLE = models.PYDANTIC_AVAILABLE
 except ImportError:
     PYDANTIC_AVAILABLE = False
-    models = None
+    models = None  # type: ignore[assignment]
 
 T = TypeVar("T")
+
+
+def generate_worker_id(prefix: str = "") -> str:
+    """
+    Generate a unique worker identifier.
+
+    Creates a stable, unique identifier for a worker/consumer that can be used
+    across multiple message processing operations. The ID includes the hostname
+    and process ID for traceability, along with a UUID for uniqueness.
+
+    Args:
+        prefix: Optional prefix for the worker ID (e.g., "api-server", "batch-processor")
+
+    Returns:
+        A unique worker identifier string in the format:
+        "{prefix}-{hostname}-{pid}-{uuid}" or "{hostname}-{pid}-{uuid}" if no prefix
+
+    Example:
+        >>> worker_id = generate_worker_id("order-processor")
+        >>> print(worker_id)
+        order-processor-hostname-12345-a1b2c3d4
+
+        >>> worker_id = generate_worker_id()
+        >>> print(worker_id)
+        hostname-12345-a1b2c3d4
+    """
+    hostname = socket.gethostname().replace(".", "-")[:32]  # Limit hostname length
+    pid = os.getpid()
+    unique_id = str(uuid.uuid4())[:8]  # Short UUID for readability
+
+    if prefix:
+        return f"{prefix}-{hostname}-{pid}-{unique_id}"
+    return f"{hostname}-{pid}-{unique_id}"
 
 
 @dataclass
@@ -122,6 +158,90 @@ def dict_to_protobuf_struct(data: Dict[str, Any]) -> Struct:
 
 
 @dataclass
+class LeasePolicyOptions:
+    """
+    Configuration for message lease policies.
+
+    Defines how long a single processing attempt is allowed to run and how
+    heartbeats can extend that time.
+
+    Attributes:
+    ----------
+    base_lease : str, optional
+        Initial lease duration for an attempt. The attempt starts with this much
+        time before timing out, unless extended. Format: "[number]unit" (e.g., "30s", "5m").
+    max_extension : str, optional
+        Maximum additional time beyond base_lease that an attempt may obtain via
+        heartbeats. Format: "[number]unit" (e.g., "10m", "1h").
+    heartbeat_timeout : str, optional
+        Maximum allowed gap between heartbeats. If a heartbeat is not received within
+        this duration, the lease may expire. Format: "[number]unit" (e.g., "30s", "2m").
+    extend_step : str, optional
+        Amount of time to extend the lease by when a heartbeat is received, until
+        max_extension is exhausted. Format: "[number]unit" (e.g., "2s", "30s").
+
+    Example:
+    -------
+    >>> policy = LeasePolicyOptions(
+    ...     base_lease="30s",
+    ...     max_extension="10m",
+    ...     heartbeat_timeout="30s",
+    ...     extend_step="2s"
+    ... )
+    """
+
+    base_lease: Optional[str] = None
+    max_extension: Optional[str] = None
+    heartbeat_timeout: Optional[str] = None
+    extend_step: Optional[str] = None
+
+    def __post_init__(self):
+        duration_pattern = re.compile(r"^\d+(\.\d+)?[smhd]$")
+        for field_name in ["base_lease", "max_extension", "heartbeat_timeout", "extend_step"]:
+            value = getattr(self, field_name)
+            if value and not duration_pattern.match(value):
+                raise ValueError(
+                    f"{field_name} must be in format '[number]unit', e.g., '5s', '2m', '3.5m', '3d'."
+                )
+
+
+def build_lease_policy(opts: Optional[LeasePolicyOptions]):
+    """
+    Build a protobuf LeasePolicy from LeasePolicyOptions.
+
+    Args:
+        opts: LeasePolicyOptions instance or None
+
+    Returns:
+        LeasePolicy protobuf object or None if opts is None or all fields are None
+    """
+    if opts is None:
+        return None
+
+    # Check if any field is set
+    if not any([opts.base_lease, opts.max_extension, opts.heartbeat_timeout, opts.extend_step]):
+        return None
+
+    from .api.common.v1.common_pb2 import LeasePolicy  # type: ignore[attr-defined]
+
+    lp = LeasePolicy()  # type: ignore[attr-defined]
+
+    if opts.base_lease:
+        lp.base_lease.CopyFrom(string_to_duration(opts.base_lease))
+
+    if opts.max_extension:
+        lp.max_extension.CopyFrom(string_to_duration(opts.max_extension))
+
+    if opts.heartbeat_timeout:
+        lp.heartbeat_timeout.CopyFrom(string_to_duration(opts.heartbeat_timeout))
+
+    if opts.extend_step:
+        lp.extend_step.CopyFrom(string_to_duration(opts.extend_step))
+
+    return lp
+
+
+@dataclass
 class PostMessageOptions:
     """
     Optional settings for posting a message to a Chronoqueue.
@@ -141,6 +261,9 @@ class PostMessageOptions:
         Maximum number of processing attempts for the message.
     data_metadata : Dict, optional
         Metadata associated with the message's payload.
+    lease_policy : LeasePolicyOptions, optional
+        Lease policy configuration for fine-grained control over message processing timeouts
+        and heartbeat behavior.
     """
 
     priority: int = 0
@@ -148,6 +271,7 @@ class PostMessageOptions:
     lease_duration: str = "1s"
     max_attempts: int = 0
     data_metadata: Dict = field(default_factory=dict)
+    lease_policy: Optional[LeasePolicyOptions] = None
 
     def __post_init__(self):
         duration_pattern = re.compile(r"^\d+(\.\d+)?[smhd]$")
@@ -191,14 +315,17 @@ class AcknowledgeMessageParams:
         Name of the queue containing the message.
     state : MessageState
         Updated state for the message.
-    stream_entry_id : str, optional
-        The stream entry ID returned from GetNextMessage. Required for proper message acknowledgment.
+    worker_id : str, optional
+        Optional stable identifier to consistently represent the same consumer.
+    attempt_id : str, optional
+        Attempt identifier to validate acknowledgment against current attempt.
     """
 
     message_id: str
     state: MessageState
     queue_name: str = "default_queue"
-    stream_entry_id: str = ""
+    worker_id: str = ""
+    attempt_id: str = ""
 
 
 @dataclass
@@ -236,23 +363,6 @@ class PeekQueueMessagesParams:
     queue_name: str
     limit: int = 5
     priority_range: Optional[MessagePriorityRange] = field(default_factory=MessagePriorityRange)
-
-
-class QueueType(Enum):
-    """
-    Enum representing the types of queues that can be created in the Chronoqueue service.
-
-    Attributes:
-    ----------
-    SIMPLE : QueueType
-        A standard queue type.
-
-    EXCLUSIVE : QueueType
-        An exclusive queue type that supports specific features such as unique messages.
-    """
-
-    SIMPLE = 0
-    EXCLUSIVE = 1
 
 
 @dataclass
@@ -295,6 +405,10 @@ class QueueOptions:
 
     priority_config : Optional[dict]
         Advanced priority scheduling configuration.
+
+    lease_policy : LeasePolicyOptions, optional
+        Lease policy configuration for fine-grained control over message processing timeouts
+        and heartbeat behavior at the queue level.
     """
 
     max_attempts: Optional[int] = None
@@ -308,6 +422,7 @@ class QueueOptions:
     max_payload_size: Optional[int] = 0
     allowed_content_types: Optional[list] = None
     priority_config: Optional[dict] = None
+    lease_policy: Optional[LeasePolicyOptions] = None
 
     def __post_init__(self):
         duration_pattern = re.compile(r"^\d+(\.\d+)?[smhd]$")
@@ -429,6 +544,9 @@ def _create_post_message_request(params: PostMessageParams) -> PostMessageReques
     payload = Payload(metadata=metadata_map, data=data_struct)
 
     if params.options:
+        # Build lease policy if provided
+        lease_policy = build_lease_policy(params.options.lease_policy)
+
         metadata = Message.Metadata(
             payload=payload,
             state=(
@@ -438,6 +556,10 @@ def _create_post_message_request(params: PostMessageParams) -> PostMessageReques
             max_attempts=params.options.max_attempts,
             priority=params.options.priority,
         )
+
+        # Add lease_policy if present
+        if lease_policy:
+            metadata.lease_policy.CopyFrom(lease_policy)
     else:
         metadata = Message.Metadata(payload=payload)
 
@@ -479,7 +601,7 @@ class ResponseWrapper:
     """
 
     # Map protobuf response types to Pydantic model classes
-    _MODEL_MAP = {}
+    _MODEL_MAP: Dict[str, Any] = {}
 
     def __init__(self, response_protobuf, converter_func: Optional[Callable] = None):
         """
@@ -494,6 +616,7 @@ class ResponseWrapper:
                 # Queue and Message responses
                 "CreateQueueResponse": models.CreateQueueResponse,
                 "DeleteQueueResponse": models.DeleteQueueResponse,
+                "ListQueuesResponse": models.ListQueuesResponse,
                 "PostMessageResponse": models.PostMessageResponse,
                 "GetNextMessageResponse": models.GetNextMessageResponse,
                 "AcknowledgeMessageResponse": models.AcknowledgeMessageResponse,
@@ -628,7 +751,7 @@ class ResponseWrapper:
                 )
 
         # Convert using the model's from_proto method
-        return model_class.from_proto(self._response_protobuf)
+        return model_class.from_proto(self._response_protobuf)  # type: ignore[union-attr]
 
     def __getattr__(self, name):
         """

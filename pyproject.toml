@@ -18,15 +18,16 @@ keywords = ["chronoqueue", "grpc", "sdk"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-grpcio = "^1.60.0"
-protobuf = "^4.21.6"
+grpcio = "^1.68.0"
+protobuf = "^5.29.0"
 pydantic = {version = "^2.0", optional = true}
+uvicorn = "^0.38.0"
 
 [tool.poetry.extras]
 pydantic = ["pydantic"]
 
 [tool.poetry.group.dev.dependencies]
-grpcio-tools = "^1.60.0"
+grpcio-tools = "^1.68.0"
 mypy-protobuf = "^3.5.0"
 pytest = "^7.0.0"
 pytest-cov = "^4.0.0"
@@ -48,7 +49,7 @@ requires = ["poetry-core>=1.0.0"]
 
 [tool.black]
 line-length = 120
-target-version = ['py310', 'py311', 'py312']
+target-version = ['py310', 'py311', 'py312', 'py313']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -76,10 +77,19 @@ warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
+no_implicit_optional = true
 exclude = [
     "chronoqueue/api/v1/",
+    "chronoqueue/api/common/",
+    "chronoqueue/api/google/",
+    "chronoqueue/api/message/",
+    "chronoqueue/api/queue/",
+    "chronoqueue/api/queueservice/",
+    "chronoqueue/api/schedule/",
+    "chronoqueue/api/schema/",
 ]
 
+# Ignore all errors from generated protobuf code
 [[tool.mypy.overrides]]
 module = [
     "chronoqueue.api.common.*",

@@ -3,9 +3,7 @@ Unit tests for schedule operations in ChronoqueueClient.
 """
 
 import unittest
-from unittest.mock import MagicMock, Mock, patch
-
-from google.protobuf import json_format
+from unittest.mock import MagicMock, patch
 
 from chronoqueue.api.queueservice.v1 import request_response_pb2
 from chronoqueue.api.schedule.v1 import schedule_pb2
@@ -64,7 +62,7 @@ class TestScheduleOperations(unittest.TestCase):
 
         try:
             self.client.create_schedule("weekly_schedule", options)
-        except:
+        except Exception:
             pass  # Expected to fail due to complex proto structure
 
         # Verify method was called
@@ -86,7 +84,7 @@ class TestScheduleOperations(unittest.TestCase):
         mock_response = request_response_pb2.CreateScheduleResponse()
         self.mock_stub.CreateSchedule.return_value = mock_response
 
-        result = self.client.create_schedule("test_schedule", options)
+        self.client.create_schedule("test_schedule", options)  # noqa: F841
 
         call_args = self.mock_stub.CreateSchedule.call_args[0][0]
         self.assertEqual(call_args.schedule.metadata.exclusivity_key, "test_key")
@@ -140,7 +138,7 @@ class TestScheduleOperations(unittest.TestCase):
         mock_response = request_response_pb2.ListSchedulesResponse()
         self.mock_stub.ListSchedules.return_value = mock_response
 
-        result = self.client.list_schedules(prefix="daily_")
+        self.client.list_schedules(prefix="daily_")  # noqa: F841
 
         self.mock_stub.ListSchedules.assert_called_once()
 
@@ -199,7 +197,7 @@ class TestScheduleOperations(unittest.TestCase):
 
         try:
             self.client.validate_calendar_schedule(calendar_config)
-        except:
+        except Exception:
             pass  # Expected to fail due to complex proto structure
 
         # Verify method was called
@@ -217,7 +215,7 @@ class TestScheduleOperations(unittest.TestCase):
 
         try:
             self.client.preview_calendar_schedule(calendar_config, count=5)
-        except:
+        except Exception:
             pass  # Expected to fail due to complex proto structure
 
         # Verify method was called

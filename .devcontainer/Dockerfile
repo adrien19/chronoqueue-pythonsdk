@@ -1,4 +1,6 @@
-FROM python:3.12-bullseye
+# FROM python:3.12-bullseye
+## Updated to bookworm and python 3.14.2 on 2024-06-10
+FROM python:3.14.2-bookworm
 
 # Avoid warnings by switching to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
@@ -37,6 +39,8 @@ RUN apt-get update && apt-get install -y \
     # && pip --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
     # && rm -rf /tmp/pip-tmp \
     #
+    # Install witr (Why is This Running tool)
+    && curl -fsSL https://raw.githubusercontent.com/pranshuparmar/witr/main/install.sh | bash \
     # Create a non-root user `vscode` and add to `docker` group
     && groupadd --gid $USER_GID $USERNAME \
     && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
@@ -44,7 +48,7 @@ RUN apt-get update && apt-get install -y \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     #
     # Add `docker` group if it doesn't exist, then add `vscode` to it
-    && if ! getent group docker; then groupadd --gid 999 docker; fi \
+    && if ! getent group docker; then groupadd docker; fi \
     && usermod -aG docker $USERNAME 
 
 # Switch back to dialog for any ad-hoc use of apt-get

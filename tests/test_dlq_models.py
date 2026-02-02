@@ -3,7 +3,6 @@ Unit tests for DLQ Pydantic models.
 """
 
 import unittest
-from unittest.mock import patch
 
 from chronoqueue.api.message.v1 import message_pb2
 from chronoqueue.api.queueservice.v1 import request_response_pb2

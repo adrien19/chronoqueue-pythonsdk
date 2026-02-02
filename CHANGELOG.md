@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contribution guidelines (CONTRIBUTING.md)
 - Pull request and issue templates
 - Test coverage reporting setup
-- Multi-version Python testing (3.10, 3.11, 3.12)
+- Multi-version Python testing (3.10, 3.11, 3.12, 3.13, 3.14)
 - Quick reference guide for common commands
 
 ### Changed

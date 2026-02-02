@@ -38,15 +38,12 @@ from typing import Callable, Dict, Optional
 
 import grpc
 from google.protobuf import json_format
-from google.protobuf.duration_pb2 import Duration
 
 from .api.common.v1 import common_pb2
-from .api.message.v1 import message_pb2
 from .api.message.v1.message_pb2 import Message
 from .api.queue.v1 import queue_pb2
 from .api.queueservice.v1 import request_response_pb2, service_pb2_grpc
 from .api.schedule.v1 import schedule_pb2
-from .api.schema.v1 import schema_pb2
 from .exceptions import InitializationError, RpcOperationError
 from .utils import (
     AcknowledgeMessageParams,
@@ -86,8 +83,9 @@ class AsyncChronoqueueClient:
         port: int,
         use_tls: bool = True,
         tls_config: Optional[TlsConfig] = None,
+        worker_id: str = "",
         heartbeat_max_duration: int = 300,
-        heartbeat_max_count: int = 1000,
+        heartbeat_max_count: int = 1000000000,  # Large number to effectively disable count limit
         heartbeat_error_callback: Optional[Callable] = None,
     ):
         """
@@ -103,10 +101,14 @@ class AsyncChronoqueueClient:
             Indicates whether to use TLS for the connection, by default True.
         tls_config : TlsConfig, optional
             Configuration for TLS connectivity. Required if use_tls is True.
+        worker_id : str, optional
+            A stable identifier for this worker/client instance. Used to track message processing
+            and validate heartbeats and acknowledgments. If not provided, each get_next_message
+            call will generate a unique worker_id.
         heartbeat_max_duration : int, optional
             Maximum duration in seconds for heartbeats per message, by default 300.
         heartbeat_max_count : int, optional
-            Maximum number of heartbeats to send per message, by default 1000.
+            Maximum number of heartbeats to send per message, by default 1000000000, effectively disabling the count limit.
         heartbeat_error_callback : callable, optional
             Callback function to invoke when heartbeat errors occur.
 
@@ -119,6 +121,7 @@ class AsyncChronoqueueClient:
         self.port = port
         self._use_tls = use_tls
         self._tls_config = tls_config
+        self._worker_id = worker_id
         self._heartbeat_max_duration = heartbeat_max_duration
         self._heartbeat_max_count = heartbeat_max_count
         self._heartbeat_error_callback = heartbeat_error_callback
@@ -186,7 +189,7 @@ class AsyncChronoqueueClient:
         else:
             raise error
 
-    async def create_queue(self, name: str, options: QueueOptions = None, error_handler=None) -> ResponseWrapper:
+    async def create_queue(self, name: str, options: Optional[QueueOptions] = None, error_handler=None) -> ResponseWrapper:
         """
         Creates a new queue in the Chronoqueue service with the specified parameters.
 
@@ -218,7 +221,7 @@ class AsyncChronoqueueClient:
             metadata = None
             if options is not None:
                 metadata = queue_pb2.QueueMetadata(
-                    type=options.type.value,
+                    type=options.type,
                     default_max_attempts=options.max_attempts if options.max_attempts is not None else 0,
                     lease_duration=string_to_duration(options.lease_duration) if options.lease_duration else None,
                     exclusivity_key=options.exclusivity_key if options.exclusivity_key else "",
@@ -320,7 +323,10 @@ class AsyncChronoqueueClient:
         pb_release_duration = string_to_duration(lease_duration)
 
         request = request_response_pb2.GetNextMessageRequest(
-            queue_name=queue_name, lease_duration=pb_release_duration, exclusivity_key=exclusivity_key
+            queue_name=queue_name,
+            lease_duration=pb_release_duration,
+            exclusivity_key=exclusivity_key,
+            worker_id=self._worker_id,
         )
         response = await self.stub.GetNextMessage(request)
         response_wrapper = ResponseWrapper(response_protobuf=response)
@@ -332,8 +338,9 @@ class AsyncChronoqueueClient:
             if message_id:
                 logging.info(f"Starting async heartbeat for message {message_id} on queue {queue_name}")
 
-                # Extract stream_entry_id from response
-                stream_entry_id = resp_dict.get("streamEntryId", "") or resp_dict.get("stream_entry_id", "")
+                # Extract attempt_id and worker_id for heartbeat tracking
+                attempt_id = resp_dict.get("attemptId", "") or resp_dict.get("attempt_id", "")
+                worker_id = resp_dict.get("workerId", "") or resp_dict.get("worker_id", "")
 
                 heartbeat_frequency = resp_dict.get("heartbeat_frequency", 1)
                 max_reconnect_attempts = resp_dict.get("max_reconnect_attempts", 3)
@@ -349,7 +356,8 @@ class AsyncChronoqueueClient:
                             self._heartbeat_loop(
                                 message_id=message_id,
                                 queue_name=queue_name,
-                                stream_entry_id=stream_entry_id,
+                                attempt_id=attempt_id,
+                                worker_id=worker_id,
                                 stop_event=stop_event,
                                 heartbeat_frequency=heartbeat_frequency,
                                 max_reconnect_attempts=max_reconnect_attempts,
@@ -360,7 +368,6 @@ class AsyncChronoqueueClient:
                         self._heartbeat_metrics[message_id] = {
                             "message_id": message_id,
                             "queue_name": queue_name,
-                            "stream_entry_id": stream_entry_id,
                             "started_at": time.time(),
                             "heartbeats_sent": 0,
                             "heartbeats_failed": 0,
@@ -376,7 +383,8 @@ class AsyncChronoqueueClient:
         self,
         message_id: str,
         queue_name: str,
-        stream_entry_id: str,
+        attempt_id: str,
+        worker_id: str,
         stop_event: asyncio.Event,
         heartbeat_frequency: int,
         max_reconnect_attempts: int,
@@ -410,7 +418,10 @@ class AsyncChronoqueueClient:
 
                 try:
                     request = request_response_pb2.SendMessageHeartBeatRequest(
-                        queue_name=queue_name, message_id=message_id, stream_entry_id=stream_entry_id
+                        queue_name=queue_name,
+                        message_id=message_id,
+                        attempt_id=attempt_id,
+                        worker_id=worker_id,
                     )
                     response = await self.stub.SendMessageHeartBeat(request)
 
@@ -538,12 +549,62 @@ class AsyncChronoqueueClient:
             message_id=params.message_id,
             queue_name=params.queue_name,
             state=params.state,
-            stream_entry_id=params.stream_entry_id,
+            worker_id=params.worker_id,
+            attempt_id=params.attempt_id,
         )
         response = await self.stub.AcknowledgeMessage(request)
         return ResponseWrapper(response_protobuf=response)
 
-    async def post_message(self, msg_params: PostMessageParams) -> ResponseWrapper:
+    async def cancel_message(
+        self, queue_name: str, message_id: str, reason: str = "", error_handler=None
+    ) -> ResponseWrapper:
+        """
+        Cancel a pending message before it has been processed.
+
+        Only messages in INVISIBLE or PENDING state can be cancelled. Messages already
+        being processed (RUNNING) cannot be cancelled.
+
+        Parameters:
+        ----------
+        queue_name : str
+            Name of the queue containing the message.
+        message_id : str
+            ID of the message to cancel.
+        reason : str, optional
+            Reason for cancellation (for audit/logging purposes).
+        error_handler : callable, optional
+            Custom error handler function.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Wrapper containing the CancelMessageResponse with success status.
+
+        Raises:
+        ------
+        RpcOperationError
+            If the RPC call fails.
+
+        Example:
+        --------
+        >>> await client.cancel_message("my_queue", "msg-123", "Order was cancelled")
+        """
+        try:
+            request = request_response_pb2.CancelMessageRequest(
+                queue_name=queue_name,
+                message_id=message_id,
+            )
+            if reason:
+                request.reason = reason
+
+            response = await self.stub.CancelMessage(request)
+            return ResponseWrapper(response_protobuf=response)
+        except grpc.RpcError as e:
+            logging.error(f"Error cancelling message: {e.details()}")
+            error = RpcOperationError(f"Failed to cancel message due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    async def post_message(self, msg_params: PostMessageParams, error_handler=None) -> ResponseWrapper:
         """
         Post a message to a queue asynchronously.
 
@@ -696,7 +757,7 @@ class AsyncChronoqueueClient:
             self._handle_error(error, handler=error_handler)
 
     async def send_message_heartbeat(
-        self, queue_name: str, message_id: str, stream_entry_id: str = "", error_handler=None
+        self, queue_name: str, message_id: str, attempt_id: str = "", worker_id: str = "", error_handler=None
     ) -> ResponseWrapper:
         """
         Send a single heartbeat for a message to extend its lease.
@@ -707,8 +768,10 @@ class AsyncChronoqueueClient:
             The name of the queue containing the message.
         message_id : str
             The unique identifier for the message.
-        stream_entry_id : str, optional
-            The stream entry ID returned from GetNextMessage. Required for proper heartbeat tracking.
+        attempt_id : str, optional
+            The attempt ID for the current message processing attempt.
+        worker_id : str, optional
+            The worker ID processing this message.
         error_handler : callable, optional
             Custom error handling function.
 
@@ -724,11 +787,14 @@ class AsyncChronoqueueClient:
 
         Example:
         --------
-        >>> await client.send_message_heartbeat("my_queue", "msg123", "1-0")
+        >>> await client.send_message_heartbeat("my_queue", "msg123", "attempt-1", "worker-1")
         """
         try:
             request = request_response_pb2.SendMessageHeartBeatRequest(
-                queue_name=queue_name, message_id=message_id, stream_entry_id=stream_entry_id
+                queue_name=queue_name,
+                message_id=message_id,
+                attempt_id=attempt_id,
+                worker_id=worker_id,
             )
             response = await self.stub.SendMessageHeartbeat(request)
             return ResponseWrapper(response_protobuf=response)

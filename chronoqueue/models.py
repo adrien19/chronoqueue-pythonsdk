@@ -17,7 +17,6 @@ Example:
 """
 
 try:
-    from datetime import datetime
     from typing import Any, Dict, List, Optional
 
     from google.protobuf import json_format
@@ -26,7 +25,7 @@ try:
     PYDANTIC_AVAILABLE = True
 except ImportError:
     PYDANTIC_AVAILABLE = False
-    BaseModel = object  # Fallback for type hints
+    BaseModel = object  # type: ignore[assignment,misc]  # Fallback for type hints
 
 
 if PYDANTIC_AVAILABLE:
@@ -141,6 +140,44 @@ if PYDANTIC_AVAILABLE:
         def from_proto(cls, proto_response):
             """Create from DeleteQueueResponse protobuf."""
             return cls(success=proto_response.success)
+
+    class Queue(BaseModel):
+        """
+        Queue model representing a queue and its metadata.
+
+        Proto source: proto/queue/v1/queue.proto::Queue
+        """
+
+        name: str = Field(..., description="Queue name")
+        metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Queue metadata configuration")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_queue):
+            """Create from Queue protobuf."""
+            data = json_format.MessageToDict(proto_queue, preserving_proto_field_name=True)
+            return cls(
+                name=data.get("name", ""),
+                metadata=data.get("metadata", {}),
+            )
+
+    class ListQueuesResponse(BaseModel):
+        """
+        Response from list_queues operation containing a list of queues.
+
+        Proto source: proto/queueservice/v1/request_response.proto::ListQueuesResponse
+        """
+
+        queues: List[Queue] = Field(default_factory=list, description="List of queues")
+
+        model_config = ConfigDict(from_attributes=True)
+
+        @classmethod
+        def from_proto(cls, proto_response):
+            """Create from ListQueuesResponse protobuf."""
+            queues = [Queue.from_proto(queue) for queue in proto_response.queues]
+            return cls(queues=queues)
 
     class PostMessageResponse(BaseModel):
         """
@@ -433,8 +470,6 @@ if PYDANTIC_AVAILABLE:
             data = json_format.MessageToDict(proto_response, preserving_proto_field_name=True)
             schedule = None
             if "schedule" in data:
-                from chronoqueue.api.schedule.v1 import schedule_pb2
-
                 schedule_proto = proto_response.schedule
                 schedule = Schedule.from_proto(schedule_proto)
 
@@ -698,7 +733,7 @@ if PYDANTIC_AVAILABLE:
         Proto source: proto/queueservice/v1/request_response.proto::GetSchemaResponse
         """
 
-        schema: Optional[Schema] = Field(None, description="Full schema object")
+        schema: Optional[Schema] = Field(None, description="Full schema object")  # type: ignore[assignment]
 
         model_config = ConfigDict(from_attributes=True)
 
@@ -878,190 +913,200 @@ if PYDANTIC_AVAILABLE:
 
 else:
     # Pydantic not available - create placeholder classes
-    class CreateQueueResponse:
+    class CreateQueueResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class DeleteQueueResponse:
+    class DeleteQueueResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class PostMessageResponse:
+    class Queue:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class GetNextMessageResponse:
+    class ListQueuesResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class AcknowledgeMessageResponse:
+    class PostMessageResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class RenewMessageLeaseResponse:
+    class GetNextMessageResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class PeekQueueMessagesResponse:
+    class AcknowledgeMessageResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class GetQueueStateResponse:
+    class RenewMessageLeaseResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class SendMessageHeartBeatResponse:
+    class PeekQueueMessagesResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class Message:
+    class GetQueueStateResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class MessageMetadata:
+    class SendMessageHeartBeatResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class MessagePayload:
+    class Message:  # type: ignore[no-redef]
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class MessageMetadata:  # type: ignore[no-redef]
+        """Pydantic not installed. Install with: pip install pydantic"""
+
+        pass
+
+    class MessagePayload:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
     # Schedule model placeholders
-    class Schedule:
+    class Schedule:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class ScheduleMetadata:
+    class ScheduleMetadata:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class ScheduleHistoryEntry:
+    class ScheduleHistoryEntry:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class CreateScheduleResponse:
+    class CreateScheduleResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class DeleteScheduleResponse:
+    class DeleteScheduleResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class GetScheduleResponse:
+    class GetScheduleResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class ListSchedulesResponse:
+    class ListSchedulesResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class GetScheduleHistoryResponse:
+    class GetScheduleHistoryResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class PauseScheduleResponse:
+    class PauseScheduleResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class ResumeScheduleResponse:
+    class ResumeScheduleResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class ValidateCalendarScheduleResponse:
+    class ValidateCalendarScheduleResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class PreviewCalendarScheduleResponse:
+    class PreviewCalendarScheduleResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
     # Schema model placeholders
-    class Schema:
+    class Schema:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class SchemaInfo:
+    class SchemaInfo:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class ValidationError:
+    class ValidationError:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class RegisterSchemaResponse:
+    class RegisterSchemaResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class GetSchemaResponse:
+    class GetSchemaResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class ListSchemasResponse:
+    class ListSchemasResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class DeleteSchemaResponse:
+    class DeleteSchemaResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class ValidatePayloadResponse:
+    class ValidatePayloadResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
     # DLQ model placeholders
-    class GetDLQMessagesResponse:
+    class GetDLQMessagesResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class RequeueFromDLQResponse:
+    class RequeueFromDLQResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class DeleteFromDLQResponse:
+    class DeleteFromDLQResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class PurgeDLQResponse:
+    class PurgeDLQResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
 
-    class GetDLQStatsResponse:
+    class GetDLQStatsResponse:  # type: ignore[no-redef]
         """Pydantic not installed. Install with: pip install pydantic"""
 
         pass
@@ -1072,6 +1117,8 @@ __all__ = [
     # Queue and Message responses
     "CreateQueueResponse",
     "DeleteQueueResponse",
+    "Queue",
+    "ListQueuesResponse",
     "PostMessageResponse",
     "GetNextMessageResponse",
     "AcknowledgeMessageResponse",
