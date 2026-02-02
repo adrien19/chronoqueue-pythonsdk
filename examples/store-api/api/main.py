@@ -55,7 +55,7 @@ def get_client():
                 use_tls=False,
                 tls_config=TlsConfig(ca_path=ca_path, client_crt_path=client_crt_path, client_key_path=client_key_path),
                 # New heartbeat configuration parameters
-                heartbeat_max_duration=120*60*60,  # 2 minutes max for this example
+                heartbeat_max_duration=120*60*60,  # 120 hours max for this example
                 heartbeat_error_callback=heartbeat_error_handler,
             )
             logger.info("✅ ChronoQueue client initialized with TLS and enhanced heartbeat management")

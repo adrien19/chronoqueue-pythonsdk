@@ -127,7 +127,7 @@ async def process_store_cart_async(async_client: AsyncChronoqueueClient):
                 ack_params = AcknowledgeMessageParams(
                     queue_name=QUEUE_NAME_STORE_CART,
                     message_id=message.message_id,
-                    state=MessageState.FAILED.value,
+                    state=MessageState.ERRORED.value,
                     worker_id=response.worker_id,
                     attempt_id=response.attempt_id,
                 )

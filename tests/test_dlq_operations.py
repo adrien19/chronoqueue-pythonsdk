@@ -25,7 +25,7 @@ class TestDLQOperations(unittest.TestCase):
         mock_response = request_response_pb2.GetDLQMessagesResponse(messages=[])
         self.mock_stub.GetDLQMessages.return_value = mock_response
 
-        self.client.get_dlq_messages("orders_queue_dlq")  # noqa: F841
+        self.client.get_dlq_messages("orders_queue_dlq")
 
         self.mock_stub.GetDLQMessages.assert_called_once()
         call_args = self.mock_stub.GetDLQMessages.call_args[0][0]
@@ -49,7 +49,7 @@ class TestDLQOperations(unittest.TestCase):
         mock_response = request_response_pb2.RequeueFromDLQResponse(success=True)
         self.mock_stub.RequeueFromDLQ.return_value = mock_response
 
-        self.client.requeue_from_dlq("orders_queue_dlq", "msg-123")  # noqa: F841
+        self.client.requeue_from_dlq("orders_queue_dlq", "msg-123")
 
         self.mock_stub.RequeueFromDLQ.assert_called_once()
         call_args = self.mock_stub.RequeueFromDLQ.call_args[0][0]
@@ -62,7 +62,7 @@ class TestDLQOperations(unittest.TestCase):
         mock_response = request_response_pb2.RequeueFromDLQResponse(success=True)
         self.mock_stub.RequeueFromDLQ.return_value = mock_response
 
-        self.client.requeue_from_dlq("orders_queue_dlq", "msg-123", target_queue="manual_review_queue")  # noqa: F841
+        self.client.requeue_from_dlq("orders_queue_dlq", "msg-123", target_queue="manual_review_queue")
 
         call_args = self.mock_stub.RequeueFromDLQ.call_args[0][0]
         self.assertEqual(call_args.target_queue, "manual_review_queue")

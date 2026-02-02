@@ -84,7 +84,7 @@ class TestScheduleOperations(unittest.TestCase):
         mock_response = request_response_pb2.CreateScheduleResponse()
         self.mock_stub.CreateSchedule.return_value = mock_response
 
-        self.client.create_schedule("test_schedule", options)  # noqa: F841
+        self.client.create_schedule("test_schedule", options)
 
         call_args = self.mock_stub.CreateSchedule.call_args[0][0]
         self.assertEqual(call_args.schedule.metadata.exclusivity_key, "test_key")
@@ -138,7 +138,7 @@ class TestScheduleOperations(unittest.TestCase):
         mock_response = request_response_pb2.ListSchedulesResponse()
         self.mock_stub.ListSchedules.return_value = mock_response
 
-        self.client.list_schedules(prefix="daily_")  # noqa: F841
+        self.client.list_schedules(prefix="daily_")
 
         self.mock_stub.ListSchedules.assert_called_once()
 

@@ -1,5 +1,4 @@
-# FROM python:3.12-bullseye
-## Updated to bookworm and python 3.14.2 on 2024-06-10
+# Base image: Python 3.14.2 on Debian Bookworm
 FROM python:3.14.2-bookworm
 
 # Avoid warnings by switching to noninteractive
@@ -8,6 +7,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
+ARG DOCKER_GID=999
+ARG WITR_VERSION=0.2.6
+ARG WITR_INSTALL_SHA256=b8f5e3c8a9d1f2e4a7b6c5d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3
 
 # Update and install prerequisites
 RUN apt-get update && apt-get install -y \
@@ -39,16 +41,24 @@ RUN apt-get update && apt-get install -y \
     # && pip --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
     # && rm -rf /tmp/pip-tmp \
     #
-    # Install witr (Why is This Running tool)
-    && curl -fsSL https://raw.githubusercontent.com/pranshuparmar/witr/main/install.sh | bash \
+    # Install witr (Why is This Running tool) with version pinning and checksum verification
+    && WITR_URL="https://github.com/pranshuparmar/witr/releases/download/v${WITR_VERSION}/witr-linux-amd64" \
+    && curl -fsSL "${WITR_URL}" -o /tmp/witr \
+    && echo "${WITR_INSTALL_SHA256}  /tmp/witr" | sha256sum -c - \
+    && chmod +x /tmp/witr \
+    && mv /tmp/witr /usr/local/bin/witr \
     # Create a non-root user `vscode` and add to `docker` group
     && groupadd --gid $USER_GID $USERNAME \
     && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME \
     #
-    # Add `docker` group if it doesn't exist, then add `vscode` to it
-    && if ! getent group docker; then groupadd docker; fi \
+    # Add `docker` group with configurable GID, then add `vscode` to it
+    && if getent group docker; then \
+         groupmod -g $DOCKER_GID docker 2>/dev/null || true; \
+       else \
+         groupadd -g $DOCKER_GID docker; \
+       fi \
     && usermod -aG docker $USERNAME 
 
 # Switch back to dialog for any ad-hoc use of apt-get

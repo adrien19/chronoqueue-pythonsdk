@@ -102,7 +102,7 @@ The project uses GitHub Actions for continuous integration and deployment:
 
 - **CI Pipeline** (`.github/workflows/ci.yml`):
   - Runs on push to main, develop branches and pull requests
-  - Tests across Python 3.10, 3.11, 3.12, and 3.14
+  - Tests across Python 3.10, 3.11, 3.12, 3.13, and 3.14
   - Performs linting, type checking, and testing
   - Generates coverage reports
   - Builds the package
