@@ -60,10 +60,9 @@ class TestScheduleOperations(unittest.TestCase):
             state=ScheduleState.SCHEDULED,
         )
 
-        try:
+        # Expected to fail due to complex proto structure
+        with self.assertRaises(Exception):
             self.client.create_schedule("weekly_schedule", options)
-        except Exception:
-            pass  # Expected to fail due to complex proto structure
 
         # Verify method was called
         self.assertTrue(self.mock_stub.CreateSchedule.called)
@@ -195,10 +194,9 @@ class TestScheduleOperations(unittest.TestCase):
             "type": "MONTHLY",
         }
 
-        try:
+        # Expected to fail due to complex proto structure
+        with self.assertRaises(Exception):
             self.client.validate_calendar_schedule(calendar_config)
-        except Exception:
-            pass  # Expected to fail due to complex proto structure
 
         # Verify method was called
         self.assertTrue(self.mock_stub.ValidateCalendarSchedule.called)
@@ -213,10 +211,9 @@ class TestScheduleOperations(unittest.TestCase):
             "type": "WEEKLY",
         }
 
-        try:
+        # Expected to fail due to complex proto structure
+        with self.assertRaises(Exception):
             self.client.preview_calendar_schedule(calendar_config, count=5)
-        except Exception:
-            pass  # Expected to fail due to complex proto structure
 
         # Verify method was called
         self.assertTrue(self.mock_stub.PreviewCalendarSchedule.called)
