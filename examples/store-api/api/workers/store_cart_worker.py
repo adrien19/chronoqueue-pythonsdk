@@ -18,10 +18,10 @@ async def process_cart(cart_id: str, cart: CartItems, client: ChronoqueueClient)
             message_id=cart_id,
             data=cart_dict,
             queue_name=QUEUE_NAME_STORE_CART,
-            options=PostMessageOptions(
-                lease_duration="5s",
-                max_attempts=2,
-            ),
+            # options=PostMessageOptions(
+            #     lease_duration="5s",
+            #     max_attempts=2,
+            # ),
         )
 
         post_msg_resp = client.post_message(msg_params=params).to_dict()

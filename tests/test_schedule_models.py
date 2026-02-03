@@ -3,7 +3,6 @@ Tests for schedule-related Pydantic models.
 """
 
 import unittest
-from unittest.mock import MagicMock
 
 import pytest
 

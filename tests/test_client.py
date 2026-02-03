@@ -233,3 +233,54 @@ def test_close_with_error(mock_client: ChronoqueueClient):
     # Ensure the heartbeat manager was signaled to stop and the thread was joined
     mock_client._stop_heartbeat.set.assert_called_once()
     mock_client._heartbeat_manager_thread.join.assert_called_once()
+
+
+def test_cancel_message_success(mock_client: ChronoqueueClient):
+    """Test cancel_message method."""
+    # Mock the gRPC response
+    mock_response = request_response_pb2.CancelMessageResponse(success=True)
+    mock_client.stub.CancelMessage.return_value = mock_response
+
+    # Call the client's method
+    response = mock_client.cancel_message("test_queue", "msg-123", "Order cancelled")
+
+    # Assert the expected behavior
+    mock_client.stub.CancelMessage.assert_called_once()
+    assert response.to_proto() == mock_response
+
+    # Verify the request was created with correct parameters
+    call_args = mock_client.stub.CancelMessage.call_args
+    request = call_args[0][0]
+    assert request.queue_name == "test_queue"
+    assert request.message_id == "msg-123"
+    assert request.reason == "Order cancelled"
+
+
+def test_cancel_message_without_reason(mock_client: ChronoqueueClient):
+    """Test cancel_message without optional reason."""
+    # Mock the gRPC response
+    mock_response = request_response_pb2.CancelMessageResponse(success=True)
+    mock_client.stub.CancelMessage.return_value = mock_response
+
+    # Call the client's method without reason
+    response = mock_client.cancel_message("test_queue", "msg-456")
+
+    # Assert the expected behavior
+    mock_client.stub.CancelMessage.assert_called_once()
+    assert response.to_proto() == mock_response
+
+    # Verify the request was created without reason
+    call_args = mock_client.stub.CancelMessage.call_args
+    request = call_args[0][0]
+    assert request.queue_name == "test_queue"
+    assert request.message_id == "msg-456"
+
+
+def test_cancel_message_error(mock_client: ChronoqueueClient):
+    """Test cancel_message error handling."""
+    # Mock gRPC method to raise an RpcError
+    mock_client.stub.CancelMessage.side_effect = MockRpcError("Message not found")
+
+    # Check if the error handler is properly invoked or the exception is raised
+    with pytest.raises(RpcOperationError):
+        mock_client.cancel_message("test_queue", "msg-999")

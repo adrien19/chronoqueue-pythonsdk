@@ -1,6 +1,6 @@
 import logging
 from chronoqueue.client import ChronoqueueClient
-from chronoqueue.utils import QueueOptions, QueueType
+from chronoqueue.utils import QueueOptions, QueueType, LeasePolicyOptions
 from config.settings import QUEUE_NAME_STORE_CART, QUEUE_NAME_CHECKOUT_CART, CHECKOUT_QUEUE_EXCLUSIVE_KEY
 
 # Initialize logging
@@ -13,7 +13,13 @@ async def create_store_cart_queue(client: ChronoqueueClient):
             type=QueueType.SIMPLE,
             exclusivity_key="",
             max_attempts=2,
-            lease_duration="1m",
+            # lease_duration="1m",
+            lease_policy=LeasePolicyOptions(
+                base_lease="1m",
+                max_extension="2m",
+                heartbeat_timeout="20s",
+                extend_step="15s",
+            )
         )
 
         response = client.create_queue(name=QUEUE_NAME_STORE_CART, options=queue_options).to_dict()
@@ -29,7 +35,13 @@ async def create_checkout_cart_queue(client: ChronoqueueClient):
             type=QueueType.EXCLUSIVE,
             exclusivity_key=CHECKOUT_QUEUE_EXCLUSIVE_KEY,
             max_attempts=-1,  # Unlimited attempts
-            lease_duration="5m",
+            # lease_duration="5m",
+            lease_policy=LeasePolicyOptions(
+                base_lease="5m",
+                max_extension="3m",
+                heartbeat_timeout="1m",
+                extend_step="1m",
+            )
         )
 
         response = client.create_queue(name=QUEUE_NAME_CHECKOUT_CART, options=queue_options).to_proto()

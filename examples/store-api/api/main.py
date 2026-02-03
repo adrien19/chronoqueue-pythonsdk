@@ -8,7 +8,10 @@ from chronoqueue.utils import TlsConfig
 from .routes import store
 from config.settings import CHRONOQUEUE_HOST, CHRONOQUEUE_PORT
 from .workers.process_store_cart_worker import process_store_cart, process_checkout_cart
-from .workers.queue_manager_worker import create_store_cart_queue, create_checkout_cart_queue
+from .workers.queue_manager_worker import (
+    create_store_cart_queue,
+    create_checkout_cart_queue
+)
 
 app = FastAPI()
 
@@ -52,9 +55,7 @@ def get_client():
                 use_tls=False,
                 tls_config=TlsConfig(ca_path=ca_path, client_crt_path=client_crt_path, client_key_path=client_key_path),
                 # New heartbeat configuration parameters
-                heartbeat_max_duration=120,  # 2 minutes max for this example
-                heartbeat_max_count=500,
-                heartbeat_thread_pool_size=10,
+                heartbeat_max_duration=120*60*60,  # 120 hours max for this example
                 heartbeat_error_callback=heartbeat_error_handler,
             )
             logger.info("✅ ChronoQueue client initialized with TLS and enhanced heartbeat management")
@@ -65,9 +66,7 @@ def get_client():
                 port=CHRONOQUEUE_PORT,
                 use_tls=False,
                 # New heartbeat configuration parameters
-                heartbeat_max_duration=120,  # 2 minutes max for demo (normally would be higher)
-                heartbeat_max_count=500,
-                heartbeat_thread_pool_size=10,
+                heartbeat_max_duration=120*60*60,  # 2 minutes max for demo (normally would be higher)
                 heartbeat_error_callback=heartbeat_error_handler,
             )
             logger.info("✅ ChronoQueue client initialized (no TLS) with enhanced heartbeat management")

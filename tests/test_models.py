@@ -23,7 +23,6 @@ from chronoqueue.models import (
     GetQueueStateResponse,
     Message,
     MessageMetadata,
-    MessagePayload,
     PeekQueueMessagesResponse,
     PostMessageResponse,
 )

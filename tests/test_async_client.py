@@ -6,12 +6,11 @@ the functionality of the synchronous client.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from chronoqueue.async_client import AsyncChronoqueueClient
-from chronoqueue.exceptions import RpcOperationError
 from chronoqueue.utils import (
     AcknowledgeMessageParams,
     PeekQueueMessagesParams,
@@ -19,7 +18,6 @@ from chronoqueue.utils import (
     QueueOptions,
     ScheduleOptions,
     SchemaOptions,
-    TlsConfig,
 )
 
 
@@ -51,7 +49,7 @@ async def test_async_client_initialization():
     assert client.port == 50051
     assert client._use_tls is False
     assert client._heartbeat_max_duration == 300  # default
-    assert client._heartbeat_max_count == 1000  # default
+    assert client._heartbeat_max_count == 1000000000  # default (effectively unlimited)
 
 
 @pytest.mark.asyncio
@@ -424,3 +422,42 @@ async def test_stop_heartbeat(async_client):
     # Stopping non-existent heartbeat returns False
     result = await async_client.stop_heartbeat("nonexistent")
     assert result is False
+
+
+@pytest.mark.asyncio
+async def test_cancel_message_success(async_client):
+    """Test cancel_message async method."""
+    async_client.stub = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.success = True
+    async_client.stub.CancelMessage = AsyncMock(return_value=mock_response)
+
+    response = await async_client.cancel_message("test_queue", "msg-123", "Order cancelled")
+    assert response is not None
+    async_client.stub.CancelMessage.assert_called_once()
+
+    # Verify the request was created with correct parameters
+    call_args = async_client.stub.CancelMessage.call_args
+    request = call_args[0][0]
+    assert request.queue_name == "test_queue"
+    assert request.message_id == "msg-123"
+    assert request.reason == "Order cancelled"
+
+
+@pytest.mark.asyncio
+async def test_cancel_message_without_reason(async_client):
+    """Test cancel_message without optional reason."""
+    async_client.stub = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.success = True
+    async_client.stub.CancelMessage = AsyncMock(return_value=mock_response)
+
+    response = await async_client.cancel_message("test_queue", "msg-456")
+    assert response is not None
+    async_client.stub.CancelMessage.assert_called_once()
+
+    # Verify the request was created without reason
+    call_args = async_client.stub.CancelMessage.call_args
+    request = call_args[0][0]
+    assert request.queue_name == "test_queue"
+    assert request.message_id == "msg-456"

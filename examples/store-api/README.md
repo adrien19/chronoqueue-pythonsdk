@@ -22,6 +22,7 @@ This example demonstrates:
 5. **Concurrency** - Thread pool (sync) or asyncio tasks (async) for multiple messages
 6. **Safety Limits** - Max duration and count prevent infinite loops
 7. **Error Callbacks** - Get notified when heartbeats fail
+8. **Queue Discovery** - List all queues with `list_queues()` method for monitoring and debugging
 
 ### Sync vs Async
 

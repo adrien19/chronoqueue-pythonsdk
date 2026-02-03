@@ -36,6 +36,7 @@ from .client import ChronoqueueClient
 from .exceptions import InitializationError, RpcOperationError
 from .utils import (
     AcknowledgeMessageParams,
+    LeasePolicyOptions,
     MessageState,
     PeekQueueMessagesParams,
     PostMessageOptions,
@@ -47,6 +48,7 @@ from .utils import (
     ScheduleState,
     SchemaOptions,
     TlsConfig,
+    generate_worker_id,
 )
 
 # Optionally export Pydantic models if available
@@ -67,6 +69,7 @@ try:
         GetScheduleHistoryResponse,
         GetScheduleResponse,
         GetSchemaResponse,
+        ListQueuesResponse,
         ListSchedulesResponse,
         ListSchemasResponse,
         Message,
@@ -77,6 +80,7 @@ try:
         PostMessageResponse,
         PreviewCalendarScheduleResponse,
         PurgeDLQResponse,
+        Queue,
         RegisterSchemaResponse,
         RenewMessageLeaseResponse,
         RequeueFromDLQResponse,
@@ -108,13 +112,17 @@ try:
         "ScheduleOptions",
         "ScheduleState",
         "SchemaOptions",
+        "LeasePolicyOptions",
         "ResponseWrapper",
+        "generate_worker_id",
         # Exceptions
         "InitializationError",
         "RpcOperationError",
         # Pydantic models (optional) - Queue and Message
         "CreateQueueResponse",
         "DeleteQueueResponse",
+        "Queue",
+        "ListQueuesResponse",
         "PostMessageResponse",
         "GetNextMessageResponse",
         "AcknowledgeMessageResponse",
@@ -173,8 +181,9 @@ except ImportError:
         "ScheduleOptions",
         "ScheduleState",
         "SchemaOptions",
-        "ScheduleState",
+        "LeasePolicyOptions",
         "ResponseWrapper",
+        "generate_worker_id",
         # Exceptions
         "InitializationError",
         "RpcOperationError",

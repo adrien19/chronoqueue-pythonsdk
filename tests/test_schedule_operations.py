@@ -3,9 +3,7 @@ Unit tests for schedule operations in ChronoqueueClient.
 """
 
 import unittest
-from unittest.mock import MagicMock, Mock, patch
-
-from google.protobuf import json_format
+from unittest.mock import MagicMock, patch
 
 from chronoqueue.api.queueservice.v1 import request_response_pb2
 from chronoqueue.api.schedule.v1 import schedule_pb2
@@ -62,10 +60,9 @@ class TestScheduleOperations(unittest.TestCase):
             state=ScheduleState.SCHEDULED,
         )
 
-        try:
+        # Expected to fail due to complex proto structure
+        with self.assertRaises(Exception):
             self.client.create_schedule("weekly_schedule", options)
-        except:
-            pass  # Expected to fail due to complex proto structure
 
         # Verify method was called
         self.assertTrue(self.mock_stub.CreateSchedule.called)
@@ -86,7 +83,7 @@ class TestScheduleOperations(unittest.TestCase):
         mock_response = request_response_pb2.CreateScheduleResponse()
         self.mock_stub.CreateSchedule.return_value = mock_response
 
-        result = self.client.create_schedule("test_schedule", options)
+        self.client.create_schedule("test_schedule", options)
 
         call_args = self.mock_stub.CreateSchedule.call_args[0][0]
         self.assertEqual(call_args.schedule.metadata.exclusivity_key, "test_key")
@@ -140,7 +137,7 @@ class TestScheduleOperations(unittest.TestCase):
         mock_response = request_response_pb2.ListSchedulesResponse()
         self.mock_stub.ListSchedules.return_value = mock_response
 
-        result = self.client.list_schedules(prefix="daily_")
+        self.client.list_schedules(prefix="daily_")
 
         self.mock_stub.ListSchedules.assert_called_once()
 
@@ -197,10 +194,9 @@ class TestScheduleOperations(unittest.TestCase):
             "type": "MONTHLY",
         }
 
-        try:
+        # Expected to fail due to complex proto structure
+        with self.assertRaises(Exception):
             self.client.validate_calendar_schedule(calendar_config)
-        except:
-            pass  # Expected to fail due to complex proto structure
 
         # Verify method was called
         self.assertTrue(self.mock_stub.ValidateCalendarSchedule.called)
@@ -215,10 +211,9 @@ class TestScheduleOperations(unittest.TestCase):
             "type": "WEEKLY",
         }
 
-        try:
+        # Expected to fail due to complex proto structure
+        with self.assertRaises(Exception):
             self.client.preview_calendar_schedule(calendar_config, count=5)
-        except:
-            pass  # Expected to fail due to complex proto structure
 
         # Verify method was called
         self.assertTrue(self.mock_stub.PreviewCalendarSchedule.called)

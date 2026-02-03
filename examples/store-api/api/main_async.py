@@ -12,6 +12,7 @@ from fastapi import FastAPI
 import asyncio
 import logging
 import os
+import socket
 from chronoqueue.async_client import AsyncChronoqueueClient
 from chronoqueue.utils import TlsConfig
 
@@ -74,6 +75,9 @@ async def get_async_client() -> AsyncChronoqueueClient:
 
         use_tls = all(os.path.exists(p) for p in [ca_path, client_crt_path, client_key_path])
 
+        # Use hostname as worker ID - stable across application restarts
+        worker_id = f"worker-{socket.gethostname()}"
+
         if use_tls:
             async_client = AsyncChronoqueueClient(
                 host=CHRONOQUEUE_HOST,
@@ -84,24 +88,26 @@ async def get_async_client() -> AsyncChronoqueueClient:
                     client_crt_path=client_crt_path,
                     client_key_path=client_key_path,
                 ),
+                worker_id=worker_id,
                 # Heartbeat configuration
                 heartbeat_max_duration=120,
                 heartbeat_max_count=500,
                 heartbeat_error_callback=heartbeat_error_handler,
             )
-            logger.info("🚀 AsyncChronoQueue client initialized with TLS")
+            logger.info(f"🚀 AsyncChronoQueue client initialized with TLS (worker_id: {worker_id})")
         else:
             # Use insecure connection for testing/development
             async_client = AsyncChronoqueueClient(
                 host=CHRONOQUEUE_HOST,
                 port=CHRONOQUEUE_PORT,
                 use_tls=False,
+                worker_id=worker_id,
                 # Heartbeat configuration
                 heartbeat_max_duration=120,
                 heartbeat_max_count=500,
                 heartbeat_error_callback=heartbeat_error_handler,
             )
-            logger.info("🚀 AsyncChronoQueue client initialized (no TLS)")
+            logger.info(f"🚀 AsyncChronoQueue client initialized (no TLS, worker_id: {worker_id})")
 
         # Connect the async client
         await async_client.connect()
