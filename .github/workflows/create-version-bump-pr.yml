@@ -200,8 +200,7 @@ jobs:
             Once this PR is merged, the `Build and Publish` workflow will automatically:
             1. Build the package with version ${{ needs.details.outputs.new_version }}
             2. Publish to TestPyPI
-            ${{ needs.details.outputs.is_release == 'true' && '3. Publish to PyPI (production release)
-            4. Create a GitHub Release' || '' }}
+            ${{ needs.details.outputs.is_release == 'true' && fromJSON('"3. Publish to PyPI (production release)\\n4. Create a GitHub Release"') || '' }}
             
             ### Review Checklist
             - [ ] Version number is correct
