@@ -157,7 +157,13 @@ jobs:
         id: default_branch
         if: steps.version_check.outputs.version_changed == 'true'
         run: |
+          set -e
           DEFAULT_BRANCH=$(gh api repos/${{ github.repository }} --jq '.default_branch')
+          if [ -z "$DEFAULT_BRANCH" ] || [ "$DEFAULT_BRANCH" = "null" ]; then
+            echo "ERROR: Failed to retrieve default branch from repository" >&2
+            echo "Repository: ${{ github.repository }}" >&2
+            exit 1
+          fi
           echo "default_branch=$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
           echo "Default branch is: $DEFAULT_BRANCH"
         env:
