@@ -113,7 +113,12 @@ jobs:
           fi
 
   create_version_bump_pr:
-    needs: [details, check_testpypi]
+    needs: [details, check_testpypi, check_pypi]
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.check_testpypi.result == 'success' &&
+      (needs.details.outputs.is_release != 'true' || needs.check_pypi.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write

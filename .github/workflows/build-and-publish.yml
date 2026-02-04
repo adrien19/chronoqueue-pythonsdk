@@ -17,7 +17,7 @@ jobs:
       startsWith(github.event.pull_request.head.ref, 'version-bump-')
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - name: Checkout merged code
@@ -79,12 +79,10 @@ jobs:
       
       - name: Create GitHub Release
         if: steps.release_type.outputs.is_release == 'true'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.package_details.outputs.package_version }}-release
-          release_name: Release ${{ steps.package_details.outputs.package_version }}
+          name: Release ${{ steps.package_details.outputs.package_version }}
           body: |
             Release of ${{ steps.package_details.outputs.package_name }} version ${{ steps.package_details.outputs.package_version }}
             
