@@ -153,10 +153,21 @@ jobs:
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
           fi
       
+      - name: Get default branch
+        id: default_branch
+        if: steps.version_check.outputs.version_changed == 'true'
+        run: |
+          DEFAULT_BRANCH=$(gh api repos/${{ github.repository }} --jq '.default_branch')
+          echo "default_branch=$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Default branch is: $DEFAULT_BRANCH"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      
       - name: Create Pull Request
         if: steps.version_check.outputs.version_changed == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
+          base: ${{ steps.default_branch.outputs.default_branch }}
           branch: version-bump-${{ needs.details.outputs.new_version }}
           title: "Bump version to ${{ needs.details.outputs.new_version }}"
           body: "This PR bumps the version to ${{ needs.details.outputs.new_version }}."
