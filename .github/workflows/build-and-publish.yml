@@ -1,0 +1,93 @@
+name: Build and Publish
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+
+jobs:
+  build_and_publish:
+    # Only run if PR was merged, has the version-bump label, was created by GitHub Actions,
+    # and the source branch matches the version-bump pattern
+    if: |
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'version-bump') &&
+      github.event.pull_request.user.login == 'github-actions[bot]' &&
+      startsWith(github.event.pull_request.head.ref, 'version-bump-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout merged code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Get package details
+        id: package_details
+        run: |
+          PACKAGE_NAME=$(poetry version | awk '{print $1}')
+          PACKAGE_VERSION=$(poetry version -s)
+          echo "package_name=$PACKAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "package_version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Package: $PACKAGE_NAME"
+          echo "Version: $PACKAGE_VERSION"
+      
+      - name: Determine release type from PR labels
+        id: release_type
+        run: |
+          if echo '${{ toJson(github.event.pull_request.labels.*.name) }}' | grep -q "production-release"; then
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+            echo "This is a production release"
+          else
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+            echo "This is a beta/test release"
+          fi
+      
+      - name: Install dependencies
+        run: make install-dev
+      
+      - name: Generate proto files
+        run: make gen-proto
+      
+      - name: Build package
+        run: make build
+      
+      - name: Publish to TestPyPI
+        run: |
+          poetry config repositories.testpypi https://test.pypi.org/legacy/
+          poetry publish -r testpypi --username __token__ --password ${{ secrets.TEST_PYPI_API_TOKEN }}
+      
+      - name: Publish to PyPI
+        if: steps.release_type.outputs.is_release == 'true'
+        run: |
+          poetry publish --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
+      
+      - name: Create GitHub Release
+        if: steps.release_type.outputs.is_release == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.package_details.outputs.package_version }}-release
+          release_name: Release ${{ steps.package_details.outputs.package_version }}
+          body: |
+            Release of ${{ steps.package_details.outputs.package_name }} version ${{ steps.package_details.outputs.package_version }}
+            
+            Published to PyPI: https://pypi.org/project/${{ steps.package_details.outputs.package_name }}/${{ steps.package_details.outputs.package_version }}/
+          draft: false
+          prerelease: false
