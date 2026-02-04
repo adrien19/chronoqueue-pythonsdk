@@ -73,7 +73,7 @@ jobs:
         run: |
           PACKAGE_NAME=${{ needs.details.outputs.package_name }}
           response=$(curl -s https://test.pypi.org/pypi/$PACKAGE_NAME/json || echo "{}")
-          latest_previous_version=$(echo "$response" | python3 -c "import sys, json; data = json.load(sys.stdin); print(max(data.get('releases', {}).keys(), key=lambda x: list(map(int, x.split('.'))), default='0.0.0'))" || echo "0.0.0")
+          latest_previous_version=$(echo "$response" | python3 -c "import sys, json; from packaging import version; data = json.load(sys.stdin); versions = [v for v in data.get('releases', {}).keys() if not version.parse(v).is_prerelease]; print(max(versions, key=version.parse, default='0.0.0') if versions else '0.0.0')" || echo "0.0.0")
           echo "Latest version on TestPyPI: $latest_previous_version"
           echo "latest_previous_version=$latest_previous_version" >> $GITHUB_ENV
       
@@ -97,7 +97,7 @@ jobs:
         run: |
           PACKAGE_NAME=${{ needs.details.outputs.package_name }}
           response=$(curl -s https://pypi.org/pypi/$PACKAGE_NAME/json || echo "{}")
-          latest_previous_version=$(echo "$response" | python3 -c "import sys, json; data = json.load(sys.stdin); print(max(data.get('releases', {}).keys(), key=lambda x: list(map(int, x.split('.'))), default='0.0.0'))" || echo "0.0.0")
+          latest_previous_version=$(echo "$response" | python3 -c "import sys, json; from packaging import version; data = json.load(sys.stdin); versions = [v for v in data.get('releases', {}).keys() if not version.parse(v).is_prerelease]; print(max(versions, key=version.parse, default='0.0.0') if versions else '0.0.0')" || echo "0.0.0")
           echo "Latest version on PyPI: $latest_previous_version"
           echo "latest_previous_version=$latest_previous_version" >> $GITHUB_ENV
       
@@ -200,7 +200,8 @@ jobs:
             Once this PR is merged, the `Build and Publish` workflow will automatically:
             1. Build the package with version ${{ needs.details.outputs.new_version }}
             2. Publish to TestPyPI
-            ${{ needs.details.outputs.is_release == 'true' && '3. Publish to PyPI (production release)' || '' }}
+            ${{ needs.details.outputs.is_release == 'true' && '3. Publish to PyPI (production release)
+            4. Create a GitHub Release' || '' }}
             
             ### Review Checklist
             - [ ] Version number is correct
