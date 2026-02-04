@@ -7,7 +7,8 @@ on:
       - develop
 
 jobs:
-  build_and_publish:
+  build_and_publish_testpypi:
+    name: Build and Publish to TestPyPI
     # Only run if PR was merged, has the version-bump label, was created by GitHub Actions,
     # and the source branch matches the version-bump pattern
     if: |
@@ -16,9 +17,16 @@ jobs:
       github.event.pull_request.user.login == 'github-actions[bot]' &&
       startsWith(github.event.pull_request.head.ref, 'version-bump-')
     runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/${{ steps.package_details.outputs.package_name }}/${{ steps.package_details.outputs.package_version }}/
     permissions:
-      contents: write
+      contents: read
       id-token: write
+    outputs:
+      package_name: ${{ steps.package_details.outputs.package_name }}
+      package_version: ${{ steps.package_details.outputs.package_version }}
+      is_release: ${{ steps.release_type.outputs.is_release }}
     steps:
       - name: Checkout merged code
         uses: actions/checkout@v4
@@ -73,23 +81,67 @@ jobs:
         run: |
           poetry config repositories.testpypi https://test.pypi.org/legacy/
           poetry publish -r testpypi
+  
+  publish_to_pypi:
+    name: Publish to PyPI
+    needs: build_and_publish_testpypi
+    if: needs.build_and_publish_testpypi.outputs.is_release == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/${{ needs.build_and_publish_testpypi.outputs.package_name }}/${{ needs.build_and_publish_testpypi.outputs.package_version }}/
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout merged code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      
+      - name: Install dependencies
+        run: make install-dev
+      
+      - name: Generate proto files
+        run: make gen-proto
+      
+      - name: Build package
+        run: make build
       
       - name: Publish to PyPI
-        if: steps.release_type.outputs.is_release == 'true'
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          poetry publish -r pypi
-      
+          poetry publish
+  
+  create_github_release:
+    name: Create GitHub Release
+    needs: [build_and_publish_testpypi, publish_to_pypi]
+    if: needs.build_and_publish_testpypi.outputs.is_release == 'true' && needs.publish_to_pypi.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
       - name: Create GitHub Release
-        if: steps.release_type.outputs.is_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.package_details.outputs.package_version }}
-          name: Release ${{ steps.package_details.outputs.package_version }}
+          tag_name: v${{ needs.build_and_publish_testpypi.outputs.package_version }}
+          name: Release ${{ needs.build_and_publish_testpypi.outputs.package_version }}
           body: |
-            Release of ${{ steps.package_details.outputs.package_name }} version ${{ steps.package_details.outputs.package_version }}
+            Release of ${{ needs.build_and_publish_testpypi.outputs.package_name }} version ${{ needs.build_and_publish_testpypi.outputs.package_version }}
             
-            Published to PyPI: https://pypi.org/project/${{ steps.package_details.outputs.package_name }}/${{ steps.package_details.outputs.package_version }}/
+            Published to PyPI: https://pypi.org/project/${{ needs.build_and_publish_testpypi.outputs.package_name }}/${{ needs.build_and_publish_testpypi.outputs.package_version }}/
           draft: false
           prerelease: false
