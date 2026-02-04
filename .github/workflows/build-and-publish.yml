@@ -72,7 +72,6 @@ jobs:
           POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: |
           poetry config repositories.testpypi https://test.pypi.org/legacy/
-          poetry config pypi-token.testpypi ${{ secrets.TEST_PYPI_API_TOKEN }}
           poetry publish -r testpypi
       
       - name: Publish to PyPI
@@ -80,8 +79,7 @@ jobs:
         env:
           POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
-          poetry publish
+          poetry publish -r pypi
       
       - name: Create GitHub Release
         if: steps.release_type.outputs.is_release == 'true'
