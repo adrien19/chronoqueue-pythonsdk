@@ -18,6 +18,7 @@ from chronoqueue.utils import (
     QueueOptions,
     ScheduleOptions,
     SchemaOptions,
+    TransactionMode,
 )
 
 
@@ -461,3 +462,163 @@ async def test_cancel_message_without_reason(async_client):
     request = call_args[0][0]
     assert request.queue_name == "test_queue"
     assert request.message_id == "msg-456"
+
+
+@pytest.mark.asyncio
+async def test_post_messages_bulk_all_or_nothing(async_client):
+    """Test post_messages_bulk with ALL_OR_NOTHING transaction mode."""
+    from chronoqueue.api.queueservice.v1 import request_response_pb2
+
+    async_client.stub = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.success = True
+    mock_response.successful_count = 3
+    mock_response.failed_count = 0
+    async_client.stub.PostMessagesBulk = AsyncMock(return_value=mock_response)
+
+    # Create test messages
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg3", data={"key": "value3"}, queue_name="test_queue"),
+    ]
+
+    # Call the client's method
+    response = await async_client.post_messages_bulk("test_queue", messages, transaction_mode="ALL_OR_NOTHING")
+
+    # Assert the expected behavior
+    assert response is not None
+    async_client.stub.PostMessagesBulk.assert_called_once()
+
+    # Verify the request
+    call_args = async_client.stub.PostMessagesBulk.call_args
+    request = call_args[0][0]
+    assert request.queue_name == "test_queue"
+    assert request.transaction_mode == request_response_pb2.PostMessagesBulkRequest.ALL_OR_NOTHING
+    assert len(request.messages) == 3
+
+
+@pytest.mark.asyncio
+async def test_post_messages_bulk_best_effort(async_client):
+    """Test post_messages_bulk with BEST_EFFORT transaction mode."""
+    from chronoqueue.api.queueservice.v1 import request_response_pb2
+
+    async_client.stub = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.success = True
+    mock_response.successful_count = 2
+    mock_response.failed_count = 1
+    async_client.stub.PostMessagesBulk = AsyncMock(return_value=mock_response)
+
+    # Create test messages
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg3", data={"key": "value3"}, queue_name="test_queue"),
+    ]
+
+    # Call the client's method
+    response = await async_client.post_messages_bulk("test_queue", messages, transaction_mode="BEST_EFFORT")
+
+    # Assert the expected behavior
+    assert response is not None
+    async_client.stub.PostMessagesBulk.assert_called_once()
+
+    # Verify the request
+    call_args = async_client.stub.PostMessagesBulk.call_args
+    request = call_args[0][0]
+    assert request.queue_name == "test_queue"
+    assert request.transaction_mode == request_response_pb2.PostMessagesBulkRequest.BEST_EFFORT
+    assert len(request.messages) == 3
+
+
+@pytest.mark.asyncio
+async def test_post_messages_bulk_invalid_transaction_mode(async_client):
+    """Test post_messages_bulk with invalid transaction mode."""
+    from chronoqueue.exceptions import RpcOperationError
+
+    async_client.stub = AsyncMock()
+
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+    ]
+
+    # Should raise error for invalid transaction mode
+    with pytest.raises(RpcOperationError):
+        await async_client.post_messages_bulk("test_queue", messages, transaction_mode="INVALID_MODE")
+
+
+@pytest.mark.asyncio
+async def test_post_messages_bulk_empty_list(async_client):
+    """Test post_messages_bulk with empty message list."""
+    async_client.stub = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.success = True
+    mock_response.successful_count = 0
+    mock_response.failed_count = 0
+    async_client.stub.PostMessagesBulk = AsyncMock(return_value=mock_response)
+
+    # Call with empty list
+    response = await async_client.post_messages_bulk("test_queue", [])
+
+    # Should still call the API
+    assert response is not None
+    async_client.stub.PostMessagesBulk.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_post_messages_bulk_with_enum_all_or_nothing(async_client):
+    """Test post_messages_bulk with TransactionMode enum (ALL_OR_NOTHING)."""
+    from chronoqueue.api.queueservice.v1 import request_response_pb2
+
+    async_client.stub = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.success = True
+    mock_response.successful_count = 2
+    mock_response.failed_count = 0
+    async_client.stub.PostMessagesBulk = AsyncMock(return_value=mock_response)
+
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="test_queue"),
+    ]
+
+    # Use enum instead of string
+    response = await async_client.post_messages_bulk("test_queue", messages, transaction_mode=TransactionMode.ALL_OR_NOTHING)
+
+    assert response is not None
+    async_client.stub.PostMessagesBulk.assert_called_once()
+
+    # Verify the request used correct enum value
+    call_args = async_client.stub.PostMessagesBulk.call_args
+    request = call_args[0][0]
+    assert request.transaction_mode == request_response_pb2.PostMessagesBulkRequest.ALL_OR_NOTHING
+
+
+@pytest.mark.asyncio
+async def test_post_messages_bulk_with_enum_best_effort(async_client):
+    """Test post_messages_bulk with TransactionMode enum (BEST_EFFORT)."""
+    from chronoqueue.api.queueservice.v1 import request_response_pb2
+
+    async_client.stub = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.success = True
+    mock_response.successful_count = 2
+    mock_response.failed_count = 0
+    async_client.stub.PostMessagesBulk = AsyncMock(return_value=mock_response)
+
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="test_queue"),
+    ]
+
+    # Use enum instead of string
+    response = await async_client.post_messages_bulk("test_queue", messages, transaction_mode=TransactionMode.BEST_EFFORT)
+
+    assert response is not None
+    async_client.stub.PostMessagesBulk.assert_called_once()
+
+    # Verify the request used correct enum value
+    call_args = async_client.stub.PostMessagesBulk.call_args
+    request = call_args[0][0]
+    assert request.transaction_mode == request_response_pb2.PostMessagesBulkRequest.BEST_EFFORT

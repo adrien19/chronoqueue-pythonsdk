@@ -26,6 +26,7 @@ from .utils import (
     ScheduleOptions,
     SchemaOptions,
     TlsConfig,
+    TransactionMode,
     _create_post_message_request,
     dict_to_protobuf_struct,
     string_to_duration,
@@ -346,6 +347,104 @@ class ChronoqueueClient:
         except grpc.RpcError as e:
             logging.error(f"Error posting message: {e.details()}")
             error = RpcOperationError(f"Failed to post message due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+
+    def post_messages_bulk(
+        self,
+        queue_name: str,
+        messages: list,
+        transaction_mode: "TransactionMode | str" = TransactionMode.ALL_OR_NOTHING,
+        error_handler=None,
+    ) -> ResponseWrapper:
+        """
+        Post multiple messages to a queue in a single bulk operation.
+
+        This method allows efficient posting of multiple messages in a single request.
+        Supports two transaction modes:
+        - ALL_OR_NOTHING: All messages succeed or all fail (atomic operation)
+        - BEST_EFFORT: Process each message independently, partial success allowed
+
+        Parameters:
+        ----------
+        queue_name : str
+            The name of the queue to post messages to.
+
+        messages : list
+            List of PostMessageParams objects, each containing:
+            - message_id (str): Unique identifier for the message
+            - data (dict): The message content
+            - Additional optional fields (priority, schedule_at, etc.)
+
+        transaction_mode : TransactionMode | str, optional
+            Transaction mode for batch processing. Can be:
+            - TransactionMode.ALL_OR_NOTHING (default): All messages succeed or all fail
+            - TransactionMode.BEST_EFFORT: Process as many as possible, continue on failures
+            - String values "ALL_OR_NOTHING" or "BEST_EFFORT" (for backwards compatibility)
+
+        error_handler : callable, optional
+            Custom error handler function. If omitted, uses default error handling.
+
+        Returns:
+        -------
+        ResponseWrapper
+            Response containing:
+            - success (bool): Overall operation success
+            - successful_count (int): Number of messages successfully posted
+            - failed_count (int): Number of messages that failed
+            - results (list): Per-message results with error details
+
+        Raises:
+        ------
+        RpcOperationError
+            If the gRPC operation fails or invalid parameters provided.
+
+        Example:
+        --------
+        >>> from chronoqueue.utils import PostMessageParams, TransactionMode
+        >>> messages = [
+        ...     PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="my_queue"),
+        ...     PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="my_queue"),
+        ... ]
+        >>> response = client.post_messages_bulk("my_queue", messages, transaction_mode=TransactionMode.BEST_EFFORT)
+        >>> result = response.to_dict()
+        >>> print(f"Successfully posted {result['successful_count']} messages")
+        """
+        try:
+            # Build the bulk request
+            request = request_response_pb2.PostMessagesBulkRequest()
+            request.queue_name = queue_name
+
+            # Convert transaction mode to protobuf enum
+            # Handle both TransactionMode enum and string for backwards compatibility
+            mode_value = transaction_mode.value if isinstance(transaction_mode, TransactionMode) else transaction_mode
+
+            if mode_value == "ALL_OR_NOTHING":
+                request.transaction_mode = request_response_pb2.PostMessagesBulkRequest.ALL_OR_NOTHING
+            elif mode_value == "BEST_EFFORT":
+                request.transaction_mode = request_response_pb2.PostMessagesBulkRequest.BEST_EFFORT
+            else:
+                raise ValueError(f"Invalid transaction_mode: {transaction_mode}. Must be TransactionMode.ALL_OR_NOTHING or TransactionMode.BEST_EFFORT")
+
+            # Add each message to the request
+            for idx, msg_params in enumerate(messages):
+                if msg_params.queue_name and msg_params.queue_name != queue_name:
+                    raise ValueError(
+                        f"messages[{idx}].queue_name must match queue_name='{queue_name}'"
+                    )
+                msg_request = _create_post_message_request(params=msg_params)
+                request.messages.append(msg_request.message)
+
+            # Execute the bulk post
+            response = self.stub.PostMessagesBulk(request)
+            return ResponseWrapper(response_protobuf=response)
+
+        except grpc.RpcError as e:
+            logging.error(f"Error posting messages in bulk: {e.details()}")
+            error = RpcOperationError(f"Failed to post messages in bulk due to: {e.details()}")
+            self._handle_error(error, handler=error_handler)
+        except (ValueError, AttributeError, TypeError) as e:
+            logging.error(f"Invalid parameters for bulk post: {e}")
+            error = RpcOperationError(f"Invalid parameters for bulk post: {e}")
             self._handle_error(error, handler=error_handler)
 
     def get_next_message(

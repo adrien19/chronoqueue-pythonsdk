@@ -8,7 +8,7 @@ import pytest
 from chronoqueue.api.queueservice.v1 import request_response_pb2, service_pb2_grpc
 from chronoqueue.client import ChronoqueueClient
 from chronoqueue.exceptions import RpcOperationError
-from chronoqueue.utils import AcknowledgeMessageParams, MessageState, PeekQueueMessagesParams, PostMessageParams
+from chronoqueue.utils import AcknowledgeMessageParams, MessageState, PeekQueueMessagesParams, PostMessageParams, TransactionMode
 
 
 @pytest.fixture
@@ -284,3 +284,161 @@ def test_cancel_message_error(mock_client: ChronoqueueClient):
     # Check if the error handler is properly invoked or the exception is raised
     with pytest.raises(RpcOperationError):
         mock_client.cancel_message("test_queue", "msg-999")
+
+
+def test_post_messages_bulk_all_or_nothing(mock_client: ChronoqueueClient):
+    """Test post_messages_bulk with ALL_OR_NOTHING transaction mode."""
+    # Mock the gRPC response
+    mock_response = request_response_pb2.PostMessagesBulkResponse(
+        success=True,
+        successful_count=3,
+        failed_count=0,
+    )
+    mock_client.stub.PostMessagesBulk.return_value = mock_response
+
+    # Create test messages
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg3", data={"key": "value3"}, queue_name="test_queue"),
+    ]
+
+    # Call the client's method
+    response = mock_client.post_messages_bulk("test_queue", messages, transaction_mode="ALL_OR_NOTHING")
+
+    # Assert the expected behavior
+    mock_client.stub.PostMessagesBulk.assert_called_once()
+    assert response.to_proto() == mock_response
+
+    # Verify the request
+    call_args = mock_client.stub.PostMessagesBulk.call_args
+    request = call_args[0][0]
+    assert request.queue_name == "test_queue"
+    assert request.transaction_mode == request_response_pb2.PostMessagesBulkRequest.ALL_OR_NOTHING
+    assert len(request.messages) == 3
+
+
+def test_post_messages_bulk_best_effort(mock_client: ChronoqueueClient):
+    """Test post_messages_bulk with BEST_EFFORT transaction mode."""
+    # Mock the gRPC response with partial success
+    mock_response = request_response_pb2.PostMessagesBulkResponse(
+        success=True,
+        successful_count=2,
+        failed_count=1,
+    )
+    mock_client.stub.PostMessagesBulk.return_value = mock_response
+
+    # Create test messages
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg3", data={"key": "value3"}, queue_name="test_queue"),
+    ]
+
+    # Call the client's method
+    response = mock_client.post_messages_bulk("test_queue", messages, transaction_mode="BEST_EFFORT")
+
+    # Assert the expected behavior
+    mock_client.stub.PostMessagesBulk.assert_called_once()
+    assert response.to_proto() == mock_response
+
+    # Verify the request
+    call_args = mock_client.stub.PostMessagesBulk.call_args
+    request = call_args[0][0]
+    assert request.queue_name == "test_queue"
+    assert request.transaction_mode == request_response_pb2.PostMessagesBulkRequest.BEST_EFFORT
+    assert len(request.messages) == 3
+
+
+def test_post_messages_bulk_invalid_transaction_mode(mock_client: ChronoqueueClient):
+    """Test post_messages_bulk with invalid transaction mode."""
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+    ]
+
+    # Should raise error for invalid transaction mode
+    with pytest.raises(RpcOperationError):
+        mock_client.post_messages_bulk("test_queue", messages, transaction_mode="INVALID_MODE")
+
+
+def test_post_messages_bulk_grpc_error(mock_client: ChronoqueueClient):
+    """Test post_messages_bulk error handling."""
+    # Mock gRPC method to raise an RpcError
+    mock_client.stub.PostMessagesBulk.side_effect = MockRpcError("Queue not found")
+
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+    ]
+
+    # Check if the error handler is properly invoked or the exception is raised
+    with pytest.raises(RpcOperationError):
+        mock_client.post_messages_bulk("test_queue", messages)
+
+
+def test_post_messages_bulk_empty_list(mock_client: ChronoqueueClient):
+    """Test post_messages_bulk with empty message list."""
+    mock_response = request_response_pb2.PostMessagesBulkResponse(
+        success=True,
+        successful_count=0,
+        failed_count=0,
+    )
+    mock_client.stub.PostMessagesBulk.return_value = mock_response
+
+    # Call with empty list
+    response = mock_client.post_messages_bulk("test_queue", [])
+
+    # Should still call the API
+    mock_client.stub.PostMessagesBulk.assert_called_once()
+    assert response.to_proto() == mock_response
+
+
+def test_post_messages_bulk_with_enum_all_or_nothing(mock_client: ChronoqueueClient):
+    """Test post_messages_bulk with TransactionMode enum (ALL_OR_NOTHING)."""
+    mock_response = request_response_pb2.PostMessagesBulkResponse(
+        success=True,
+        successful_count=2,
+        failed_count=0,
+    )
+    mock_client.stub.PostMessagesBulk.return_value = mock_response
+
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="test_queue"),
+    ]
+
+    # Use enum instead of string
+    response = mock_client.post_messages_bulk("test_queue", messages, transaction_mode=TransactionMode.ALL_OR_NOTHING)
+
+    mock_client.stub.PostMessagesBulk.assert_called_once()
+    assert response.to_proto() == mock_response
+
+    # Verify the request used correct enum value
+    call_args = mock_client.stub.PostMessagesBulk.call_args
+    request = call_args[0][0]
+    assert request.transaction_mode == request_response_pb2.PostMessagesBulkRequest.ALL_OR_NOTHING
+
+
+def test_post_messages_bulk_with_enum_best_effort(mock_client: ChronoqueueClient):
+    """Test post_messages_bulk with TransactionMode enum (BEST_EFFORT)."""
+    mock_response = request_response_pb2.PostMessagesBulkResponse(
+        success=True,
+        successful_count=2,
+        failed_count=0,
+    )
+    mock_client.stub.PostMessagesBulk.return_value = mock_response
+
+    messages = [
+        PostMessageParams(message_id="msg1", data={"key": "value1"}, queue_name="test_queue"),
+        PostMessageParams(message_id="msg2", data={"key": "value2"}, queue_name="test_queue"),
+    ]
+
+    # Use enum instead of string
+    response = mock_client.post_messages_bulk("test_queue", messages, transaction_mode=TransactionMode.BEST_EFFORT)
+
+    mock_client.stub.PostMessagesBulk.assert_called_once()
+    assert response.to_proto() == mock_response
+
+    # Verify the request used correct enum value
+    call_args = mock_client.stub.PostMessagesBulk.call_args
+    request = call_args[0][0]
+    assert request.transaction_mode == request_response_pb2.PostMessagesBulkRequest.BEST_EFFORT

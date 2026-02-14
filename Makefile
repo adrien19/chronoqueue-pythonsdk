@@ -125,7 +125,7 @@ gen-proto: setup-dirs check-proto
 	@echo "Creating __init__.py files in all directories..."
 	@find $(OUTPUT_PATH) -type d -exec touch {}/__init__.py \;
 	@echo "Formatting generated code..."
-	@poetry run black $(OUTPUT_PATH) --line-length=120 --quiet --exclude='__pycache__|\.pyc' || true
+	@poetry run black $(OUTPUT_PATH) --line-length=120 --quiet --exclude='__pycache__|\.pyc' --target-version=py310 || true
 	@poetry run isort $(OUTPUT_PATH) --profile black --line-length 120 --quiet --skip-glob='*/__pycache__/*' || true
 	@echo "Python gRPC classes generated successfully!"
 	@echo "Generated $$(find $(OUTPUT_PATH) -name "*.py" -type f | wc -l) Python file(s)"
