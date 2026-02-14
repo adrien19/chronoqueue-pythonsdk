@@ -87,6 +87,11 @@ class QueueServiceStub(object):
                 request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageRequest.SerializeToString,
                 response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageResponse.FromString,
                 _registered_method=True)
+        self.PostMessagesBulk = channel.unary_unary(
+                '/chronoqueue.api.queueservice.v1.QueueService/PostMessagesBulk',
+                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkRequest.SerializeToString,
+                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkResponse.FromString,
+                _registered_method=True)
         self.GetNextMessage = channel.unary_unary(
                 '/chronoqueue.api.queueservice.v1.QueueService/GetNextMessage',
                 request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageRequest.SerializeToString,
@@ -388,6 +393,28 @@ class QueueServiceServicer(object):
         - NotFound: Queue doesn't exist
         - InvalidArgument: Schema validation failed, invalid scheduled_time
         - AlreadyExists: Duplicate idempotency_key (within dedup window)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def PostMessagesBulk(self, request, context):
+        """PostMessagesBulk posts multiple messages to a queue in a single operation.
+
+        Supports two transaction modes:
+        - ALL_OR_NOTHING: All messages succeed or all fail (atomic)
+        - BEST_EFFORT: Independent processing, partial success allowed
+
+        Limits:
+        - Max 1000 messages per request
+        - Max 1MB total payload size
+
+        Errors:
+        - NotFound: Queue doesn't exist
+        - InvalidArgument: Too many messages, payload too large, invalid mode
+        - FailedPrecondition: One or more messages failed in ALL_OR_NOTHING mode (entire batch rejected)
+
+        Individual message errors are returned in the response with per-message error codes.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -1053,6 +1080,11 @@ def add_QueueServiceServicer_to_server(servicer, server):
                     request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageRequest.FromString,
                     response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageResponse.SerializeToString,
             ),
+            'PostMessagesBulk': grpc.unary_unary_rpc_method_handler(
+                    servicer.PostMessagesBulk,
+                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkRequest.FromString,
+                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkResponse.SerializeToString,
+            ),
             'GetNextMessage': grpc.unary_unary_rpc_method_handler(
                     servicer.GetNextMessage,
                     request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageRequest.FromString,
@@ -1339,6 +1371,33 @@ class QueueService(object):
             '/chronoqueue.api.queueservice.v1.QueueService/PostMessage',
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def PostMessagesBulk(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/chronoqueue.api.queueservice.v1.QueueService/PostMessagesBulk',
+            proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkRequest.SerializeToString,
+            proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkResponse.FromString,
             options,
             channel_credentials,
             insecure,

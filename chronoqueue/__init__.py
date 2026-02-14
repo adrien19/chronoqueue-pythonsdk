@@ -48,6 +48,7 @@ from .utils import (
     ScheduleState,
     SchemaOptions,
     TlsConfig,
+    TransactionMode,
     generate_worker_id,
 )
 
@@ -183,6 +184,7 @@ except ImportError:
         "SchemaOptions",
         "LeasePolicyOptions",
         "ResponseWrapper",
+        "TransactionMode",
         "generate_worker_id",
         # Exceptions
         "InitializationError",

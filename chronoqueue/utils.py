@@ -127,6 +127,24 @@ class ScheduleState(Enum):
     PAUSED = Schedule.Metadata.State.PAUSED
 
 
+class TransactionMode(Enum):
+    """
+    Enumeration representing transaction modes for bulk message posting.
+
+    Attributes:
+    ----------
+    ALL_OR_NOTHING : TransactionMode
+        All messages succeed or all fail (atomic operation).
+        Batch processed in single database transaction.
+    BEST_EFFORT : TransactionMode
+        Process as many as possible, continue on failures.
+        Messages processed independently, partial success allowed.
+    """
+
+    ALL_OR_NOTHING = "ALL_OR_NOTHING"
+    BEST_EFFORT = "BEST_EFFORT"
+
+
 def string_to_duration(s: str) -> Duration:
     """
     Convert a string representation of duration to a protobuf Duration object.
