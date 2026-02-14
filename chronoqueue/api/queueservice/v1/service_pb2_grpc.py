@@ -8,23 +8,24 @@ from chronoqueue.api.queueservice.v1 import (
     request_response_pb2 as proto_dot_queueservice_dot_v1_dot_request__response__pb2,
 )
 
-GRPC_GENERATED_VERSION = '1.71.2'
+GRPC_GENERATED_VERSION = "1.71.2"
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 
 try:
     from grpc._utilities import first_version_is_lower
+
     _version_not_supported = first_version_is_lower(GRPC_VERSION, GRPC_GENERATED_VERSION)
 except ImportError:
     _version_not_supported = True
 
 if _version_not_supported:
     raise RuntimeError(
-        f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in proto/queueservice/v1/service_pb2_grpc.py depends on'
-        + f' grpcio>={GRPC_GENERATED_VERSION}.'
-        + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
-        + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
+        f"The grpc package installed is at version {GRPC_VERSION},"
+        + f" but the generated code in proto/queueservice/v1/service_pb2_grpc.py depends on"
+        + f" grpcio>={GRPC_GENERATED_VERSION}."
+        + f" Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}"
+        + f" or downgrade your generated code using grpcio-tools<={GRPC_VERSION}."
     )
 
 
@@ -63,160 +64,191 @@ class QueueServiceStub(object):
             channel: A grpc.Channel.
         """
         self.CreateQueue = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/CreateQueue',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/CreateQueue",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueResponse.FromString,
+            _registered_method=True,
+        )
         self.DeleteQueue = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/DeleteQueue',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/DeleteQueue",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueResponse.FromString,
+            _registered_method=True,
+        )
         self.ListQueues = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/ListQueues',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/ListQueues",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesResponse.FromString,
+            _registered_method=True,
+        )
         self.GetQueueState = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/GetQueueState',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/GetQueueState",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateResponse.FromString,
+            _registered_method=True,
+        )
         self.PostMessage = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/PostMessage',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/PostMessage",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageResponse.FromString,
+            _registered_method=True,
+        )
         self.PostMessagesBulk = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/PostMessagesBulk',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/PostMessagesBulk",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkResponse.FromString,
+            _registered_method=True,
+        )
         self.GetNextMessage = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/GetNextMessage',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/GetNextMessage",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageResponse.FromString,
+            _registered_method=True,
+        )
         self.AcknowledgeMessage = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/AcknowledgeMessage',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/AcknowledgeMessage",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageResponse.FromString,
+            _registered_method=True,
+        )
         self.CancelMessage = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/CancelMessage',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/CancelMessage",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageResponse.FromString,
+            _registered_method=True,
+        )
         self.RenewMessageLease = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/RenewMessageLease',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/RenewMessageLease",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseResponse.FromString,
+            _registered_method=True,
+        )
         self.PeekQueueMessages = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/PeekQueueMessages',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/PeekQueueMessages",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesResponse.FromString,
+            _registered_method=True,
+        )
         self.SendMessageHeartBeat = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/SendMessageHeartBeat',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/SendMessageHeartBeat",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatResponse.FromString,
+            _registered_method=True,
+        )
         self.CreateSchedule = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/CreateSchedule',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/CreateSchedule",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleResponse.FromString,
+            _registered_method=True,
+        )
         self.DeleteSchedule = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/DeleteSchedule',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/DeleteSchedule",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleResponse.FromString,
+            _registered_method=True,
+        )
         self.GetSchedule = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/GetSchedule',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/GetSchedule",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleResponse.FromString,
+            _registered_method=True,
+        )
         self.ListSchedules = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/ListSchedules',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/ListSchedules",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesResponse.FromString,
+            _registered_method=True,
+        )
         self.GetScheduleHistory = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/GetScheduleHistory',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/GetScheduleHistory",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryResponse.FromString,
+            _registered_method=True,
+        )
         self.PauseSchedule = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/PauseSchedule',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/PauseSchedule",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleResponse.FromString,
+            _registered_method=True,
+        )
         self.ResumeSchedule = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/ResumeSchedule',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/ResumeSchedule",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleResponse.FromString,
+            _registered_method=True,
+        )
         self.GetDLQMessages = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/GetDLQMessages',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/GetDLQMessages",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesResponse.FromString,
+            _registered_method=True,
+        )
         self.RequeueFromDLQ = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/RequeueFromDLQ',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/RequeueFromDLQ",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQResponse.FromString,
+            _registered_method=True,
+        )
         self.DeleteFromDLQ = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/DeleteFromDLQ',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/DeleteFromDLQ",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQResponse.FromString,
+            _registered_method=True,
+        )
         self.PurgeDLQ = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/PurgeDLQ',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/PurgeDLQ",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQResponse.FromString,
+            _registered_method=True,
+        )
         self.GetDLQStats = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/GetDLQStats',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/GetDLQStats",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsResponse.FromString,
+            _registered_method=True,
+        )
         self.ValidateCalendarSchedule = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/ValidateCalendarSchedule',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/ValidateCalendarSchedule",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleResponse.FromString,
+            _registered_method=True,
+        )
         self.PreviewCalendarSchedule = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/PreviewCalendarSchedule',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/PreviewCalendarSchedule",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleResponse.FromString,
+            _registered_method=True,
+        )
         self.RegisterSchema = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/RegisterSchema',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/RegisterSchema",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaResponse.FromString,
+            _registered_method=True,
+        )
         self.GetSchema = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/GetSchema',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/GetSchema",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaResponse.FromString,
+            _registered_method=True,
+        )
         self.ListSchemas = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/ListSchemas',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/ListSchemas",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasResponse.FromString,
+            _registered_method=True,
+        )
         self.DeleteSchema = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/DeleteSchema',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/DeleteSchema",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaResponse.FromString,
+            _registered_method=True,
+        )
         self.ValidatePayload = channel.unary_unary(
-                '/chronoqueue.api.queueservice.v1.QueueService/ValidatePayload',
-                request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadRequest.SerializeToString,
-                response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadResponse.FromString,
-                _registered_method=True)
+            "/chronoqueue.api.queueservice.v1.QueueService/ValidatePayload",
+            request_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadRequest.SerializeToString,
+            response_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadResponse.FromString,
+            _registered_method=True,
+        )
 
 
 class QueueServiceServicer(object):
@@ -276,8 +308,8 @@ class QueueServiceServicer(object):
         - InvalidArgument: Invalid configuration (negative lease_duration, etc.)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def DeleteQueue(self, request, context):
         """DeleteQueue permanently deletes a queue and all its messages.
@@ -299,8 +331,8 @@ class QueueServiceServicer(object):
         - NotFound: Queue doesn't exist
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ListQueues(self, request, context):
         """ListQueues returns all queues in your ChronoQueue instance.
@@ -316,8 +348,8 @@ class QueueServiceServicer(object):
         Returns: List of Queue objects with metadata
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def GetQueueState(self, request, context):
         """GetQueueState returns current queue statistics and health.
@@ -346,8 +378,8 @@ class QueueServiceServicer(object):
         Returns: QueueState with counts and metrics
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def PostMessage(self, request, context):
         """==================== Message Operations ====================
@@ -395,8 +427,8 @@ class QueueServiceServicer(object):
         - AlreadyExists: Duplicate idempotency_key (within dedup window)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def PostMessagesBulk(self, request, context):
         """PostMessagesBulk posts multiple messages to a queue in a single operation.
@@ -417,8 +449,8 @@ class QueueServiceServicer(object):
         Individual message errors are returned in the response with per-message error codes.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def GetNextMessage(self, request, context):
         """GetNextMessage retrieves the next available message for processing.
@@ -464,8 +496,8 @@ class QueueServiceServicer(object):
         - NotFound: Queue doesn't exist
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def AcknowledgeMessage(self, request, context):
         """AcknowledgeMessage marks a message as successfully processed.
@@ -489,8 +521,8 @@ class QueueServiceServicer(object):
         - DeadlineExceeded: Lease already expired
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def CancelMessage(self, request, context):
         """CancelMessage cancels a pending message before it has been processed.
@@ -523,8 +555,8 @@ class QueueServiceServicer(object):
         - FailedPrecondition: Message is RUNNING, COMPLETED, ERRORED, or already CANCELED
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def RenewMessageLease(self, request, context):
         """RenewMessageLease extends the processing time for a message.
@@ -563,8 +595,8 @@ class QueueServiceServicer(object):
         - FailedPrecondition: Message not in RUNNING state
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def PeekQueueMessages(self, request, context):
         """PeekQueueMessages views messages without leasing them.
@@ -585,8 +617,8 @@ class QueueServiceServicer(object):
         Returns: List of messages (up to requested count)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def SendMessageHeartBeat(self, request, context):
         """SendMessageHeartBeat indicates a worker is still processing a message.
@@ -603,8 +635,8 @@ class QueueServiceServicer(object):
         Returns: Empty response
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def CreateSchedule(self, request, context):
         """==================== Schedule Management Operations ====================
@@ -643,8 +675,8 @@ class QueueServiceServicer(object):
         - InvalidArgument: Invalid cron expression or calendar rule
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def DeleteSchedule(self, request, context):
         """DeleteSchedule permanently removes a schedule.
@@ -662,8 +694,8 @@ class QueueServiceServicer(object):
         - NotFound: Schedule doesn't exist
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def GetSchedule(self, request, context):
         """GetSchedule retrieves schedule details and current state.
@@ -683,8 +715,8 @@ class QueueServiceServicer(object):
         - NotFound: Schedule doesn't exist
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ListSchedules(self, request, context):
         """ListSchedules returns all schedules.
@@ -700,8 +732,8 @@ class QueueServiceServicer(object):
         Returns: List of Schedule objects
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def GetScheduleHistory(self, request, context):
         """GetScheduleHistory returns execution history for a schedule.
@@ -722,8 +754,8 @@ class QueueServiceServicer(object):
         Returns: ScheduleHistory with execution records
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def PauseSchedule(self, request, context):
         """PauseSchedule temporarily stops a schedule from creating messages.
@@ -746,8 +778,8 @@ class QueueServiceServicer(object):
         - NotFound: Schedule doesn't exist
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ResumeSchedule(self, request, context):
         """ResumeSchedule reactivates a paused schedule.
@@ -766,8 +798,8 @@ class QueueServiceServicer(object):
         - FailedPrecondition: Schedule not in PAUSED state
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def GetDLQMessages(self, request, context):
         """==================== Dead Letter Queue Management ====================
@@ -790,8 +822,8 @@ class QueueServiceServicer(object):
         Returns: List of failed messages with error details
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def RequeueFromDLQ(self, request, context):
         """RequeueFromDLQ moves a message from DLQ back to its original queue.
@@ -817,8 +849,8 @@ class QueueServiceServicer(object):
         - NotFound: Message not in DLQ
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def DeleteFromDLQ(self, request, context):
         """DeleteFromDLQ permanently removes a message from the DLQ.
@@ -838,8 +870,8 @@ class QueueServiceServicer(object):
         - NotFound: Message not in DLQ
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def PurgeDLQ(self, request, context):
         """PurgeDLQ removes all messages from a dead letter queue.
@@ -857,8 +889,8 @@ class QueueServiceServicer(object):
         Returns: Count of deleted messages
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def GetDLQStats(self, request, context):
         """GetDLQStats returns statistics about a dead letter queue.
@@ -880,8 +912,8 @@ class QueueServiceServicer(object):
         Returns: DLQ statistics
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ValidateCalendarSchedule(self, request, context):
         """==================== Calendar Schedule Operations ====================
@@ -905,8 +937,8 @@ class QueueServiceServicer(object):
         Returns: Validation result with errors if invalid
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def PreviewCalendarSchedule(self, request, context):
         """PreviewCalendarSchedule shows next N execution times for a schedule.
@@ -937,8 +969,8 @@ class QueueServiceServicer(object):
         Returns: List of upcoming execution timestamps
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def RegisterSchema(self, request, context):
         """==================== Schema Management Operations ====================
@@ -973,8 +1005,8 @@ class QueueServiceServicer(object):
         - InvalidArgument: Invalid schema syntax
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def GetSchema(self, request, context):
         """GetSchema retrieves a specific schema version.
@@ -987,8 +1019,8 @@ class QueueServiceServicer(object):
         - NotFound: Schema not found
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ListSchemas(self, request, context):
         """ListSchemas returns all registered schemas.
@@ -1004,8 +1036,8 @@ class QueueServiceServicer(object):
         Returns: List of schemas (all versions)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def DeleteSchema(self, request, context):
         """DeleteSchema removes a schema version.
@@ -1026,8 +1058,8 @@ class QueueServiceServicer(object):
         - FailedPrecondition: Schema in use by active queues
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
     def ValidatePayload(self, request, context):
         """ValidatePayload validates a payload against a schema without posting a message.
@@ -1049,175 +1081,176 @@ class QueueServiceServicer(object):
         Returns: ValidationResult (valid=true or list of errors)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
 
 
 def add_QueueServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'CreateQueue': grpc.unary_unary_rpc_method_handler(
-                    servicer.CreateQueue,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueResponse.SerializeToString,
-            ),
-            'DeleteQueue': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeleteQueue,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueResponse.SerializeToString,
-            ),
-            'ListQueues': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListQueues,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesResponse.SerializeToString,
-            ),
-            'GetQueueState': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetQueueState,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateResponse.SerializeToString,
-            ),
-            'PostMessage': grpc.unary_unary_rpc_method_handler(
-                    servicer.PostMessage,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageResponse.SerializeToString,
-            ),
-            'PostMessagesBulk': grpc.unary_unary_rpc_method_handler(
-                    servicer.PostMessagesBulk,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkResponse.SerializeToString,
-            ),
-            'GetNextMessage': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetNextMessage,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageResponse.SerializeToString,
-            ),
-            'AcknowledgeMessage': grpc.unary_unary_rpc_method_handler(
-                    servicer.AcknowledgeMessage,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageResponse.SerializeToString,
-            ),
-            'CancelMessage': grpc.unary_unary_rpc_method_handler(
-                    servicer.CancelMessage,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageResponse.SerializeToString,
-            ),
-            'RenewMessageLease': grpc.unary_unary_rpc_method_handler(
-                    servicer.RenewMessageLease,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseResponse.SerializeToString,
-            ),
-            'PeekQueueMessages': grpc.unary_unary_rpc_method_handler(
-                    servicer.PeekQueueMessages,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesResponse.SerializeToString,
-            ),
-            'SendMessageHeartBeat': grpc.unary_unary_rpc_method_handler(
-                    servicer.SendMessageHeartBeat,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatResponse.SerializeToString,
-            ),
-            'CreateSchedule': grpc.unary_unary_rpc_method_handler(
-                    servicer.CreateSchedule,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleResponse.SerializeToString,
-            ),
-            'DeleteSchedule': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeleteSchedule,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleResponse.SerializeToString,
-            ),
-            'GetSchedule': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetSchedule,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleResponse.SerializeToString,
-            ),
-            'ListSchedules': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListSchedules,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesResponse.SerializeToString,
-            ),
-            'GetScheduleHistory': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetScheduleHistory,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryResponse.SerializeToString,
-            ),
-            'PauseSchedule': grpc.unary_unary_rpc_method_handler(
-                    servicer.PauseSchedule,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleResponse.SerializeToString,
-            ),
-            'ResumeSchedule': grpc.unary_unary_rpc_method_handler(
-                    servicer.ResumeSchedule,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleResponse.SerializeToString,
-            ),
-            'GetDLQMessages': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetDLQMessages,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesResponse.SerializeToString,
-            ),
-            'RequeueFromDLQ': grpc.unary_unary_rpc_method_handler(
-                    servicer.RequeueFromDLQ,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQResponse.SerializeToString,
-            ),
-            'DeleteFromDLQ': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeleteFromDLQ,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQResponse.SerializeToString,
-            ),
-            'PurgeDLQ': grpc.unary_unary_rpc_method_handler(
-                    servicer.PurgeDLQ,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQResponse.SerializeToString,
-            ),
-            'GetDLQStats': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetDLQStats,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsResponse.SerializeToString,
-            ),
-            'ValidateCalendarSchedule': grpc.unary_unary_rpc_method_handler(
-                    servicer.ValidateCalendarSchedule,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleResponse.SerializeToString,
-            ),
-            'PreviewCalendarSchedule': grpc.unary_unary_rpc_method_handler(
-                    servicer.PreviewCalendarSchedule,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleResponse.SerializeToString,
-            ),
-            'RegisterSchema': grpc.unary_unary_rpc_method_handler(
-                    servicer.RegisterSchema,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaResponse.SerializeToString,
-            ),
-            'GetSchema': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetSchema,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaResponse.SerializeToString,
-            ),
-            'ListSchemas': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListSchemas,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasResponse.SerializeToString,
-            ),
-            'DeleteSchema': grpc.unary_unary_rpc_method_handler(
-                    servicer.DeleteSchema,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaResponse.SerializeToString,
-            ),
-            'ValidatePayload': grpc.unary_unary_rpc_method_handler(
-                    servicer.ValidatePayload,
-                    request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadRequest.FromString,
-                    response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadResponse.SerializeToString,
-            ),
+        "CreateQueue": grpc.unary_unary_rpc_method_handler(
+            servicer.CreateQueue,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueResponse.SerializeToString,
+        ),
+        "DeleteQueue": grpc.unary_unary_rpc_method_handler(
+            servicer.DeleteQueue,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueResponse.SerializeToString,
+        ),
+        "ListQueues": grpc.unary_unary_rpc_method_handler(
+            servicer.ListQueues,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesResponse.SerializeToString,
+        ),
+        "GetQueueState": grpc.unary_unary_rpc_method_handler(
+            servicer.GetQueueState,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateResponse.SerializeToString,
+        ),
+        "PostMessage": grpc.unary_unary_rpc_method_handler(
+            servicer.PostMessage,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageResponse.SerializeToString,
+        ),
+        "PostMessagesBulk": grpc.unary_unary_rpc_method_handler(
+            servicer.PostMessagesBulk,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkResponse.SerializeToString,
+        ),
+        "GetNextMessage": grpc.unary_unary_rpc_method_handler(
+            servicer.GetNextMessage,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageResponse.SerializeToString,
+        ),
+        "AcknowledgeMessage": grpc.unary_unary_rpc_method_handler(
+            servicer.AcknowledgeMessage,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageResponse.SerializeToString,
+        ),
+        "CancelMessage": grpc.unary_unary_rpc_method_handler(
+            servicer.CancelMessage,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageResponse.SerializeToString,
+        ),
+        "RenewMessageLease": grpc.unary_unary_rpc_method_handler(
+            servicer.RenewMessageLease,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseResponse.SerializeToString,
+        ),
+        "PeekQueueMessages": grpc.unary_unary_rpc_method_handler(
+            servicer.PeekQueueMessages,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesResponse.SerializeToString,
+        ),
+        "SendMessageHeartBeat": grpc.unary_unary_rpc_method_handler(
+            servicer.SendMessageHeartBeat,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatResponse.SerializeToString,
+        ),
+        "CreateSchedule": grpc.unary_unary_rpc_method_handler(
+            servicer.CreateSchedule,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleResponse.SerializeToString,
+        ),
+        "DeleteSchedule": grpc.unary_unary_rpc_method_handler(
+            servicer.DeleteSchedule,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleResponse.SerializeToString,
+        ),
+        "GetSchedule": grpc.unary_unary_rpc_method_handler(
+            servicer.GetSchedule,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleResponse.SerializeToString,
+        ),
+        "ListSchedules": grpc.unary_unary_rpc_method_handler(
+            servicer.ListSchedules,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesResponse.SerializeToString,
+        ),
+        "GetScheduleHistory": grpc.unary_unary_rpc_method_handler(
+            servicer.GetScheduleHistory,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryResponse.SerializeToString,
+        ),
+        "PauseSchedule": grpc.unary_unary_rpc_method_handler(
+            servicer.PauseSchedule,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleResponse.SerializeToString,
+        ),
+        "ResumeSchedule": grpc.unary_unary_rpc_method_handler(
+            servicer.ResumeSchedule,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleResponse.SerializeToString,
+        ),
+        "GetDLQMessages": grpc.unary_unary_rpc_method_handler(
+            servicer.GetDLQMessages,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesResponse.SerializeToString,
+        ),
+        "RequeueFromDLQ": grpc.unary_unary_rpc_method_handler(
+            servicer.RequeueFromDLQ,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQResponse.SerializeToString,
+        ),
+        "DeleteFromDLQ": grpc.unary_unary_rpc_method_handler(
+            servicer.DeleteFromDLQ,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQResponse.SerializeToString,
+        ),
+        "PurgeDLQ": grpc.unary_unary_rpc_method_handler(
+            servicer.PurgeDLQ,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQResponse.SerializeToString,
+        ),
+        "GetDLQStats": grpc.unary_unary_rpc_method_handler(
+            servicer.GetDLQStats,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsResponse.SerializeToString,
+        ),
+        "ValidateCalendarSchedule": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidateCalendarSchedule,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleResponse.SerializeToString,
+        ),
+        "PreviewCalendarSchedule": grpc.unary_unary_rpc_method_handler(
+            servicer.PreviewCalendarSchedule,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleResponse.SerializeToString,
+        ),
+        "RegisterSchema": grpc.unary_unary_rpc_method_handler(
+            servicer.RegisterSchema,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaResponse.SerializeToString,
+        ),
+        "GetSchema": grpc.unary_unary_rpc_method_handler(
+            servicer.GetSchema,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaResponse.SerializeToString,
+        ),
+        "ListSchemas": grpc.unary_unary_rpc_method_handler(
+            servicer.ListSchemas,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasResponse.SerializeToString,
+        ),
+        "DeleteSchema": grpc.unary_unary_rpc_method_handler(
+            servicer.DeleteSchema,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaResponse.SerializeToString,
+        ),
+        "ValidatePayload": grpc.unary_unary_rpc_method_handler(
+            servicer.ValidatePayload,
+            request_deserializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadRequest.FromString,
+            response_serializer=proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadResponse.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'chronoqueue.api.queueservice.v1.QueueService', rpc_method_handlers)
+        "chronoqueue.api.queueservice.v1.QueueService", rpc_method_handlers
+    )
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('chronoqueue.api.queueservice.v1.QueueService', rpc_method_handlers)
+    server.add_registered_method_handlers("chronoqueue.api.queueservice.v1.QueueService", rpc_method_handlers)
 
 
- # This class is part of an EXPERIMENTAL API.
+# This class is part of an EXPERIMENTAL API.
 class QueueService(object):
     """QueueService is the primary API for interacting with ChronoQueue.
 
@@ -1247,20 +1280,22 @@ class QueueService(object):
     """
 
     @staticmethod
-    def CreateQueue(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def CreateQueue(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/CreateQueue',
+            "/chronoqueue.api.queueservice.v1.QueueService/CreateQueue",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateQueueResponse.FromString,
             options,
@@ -1271,23 +1306,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def DeleteQueue(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def DeleteQueue(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/DeleteQueue',
+            "/chronoqueue.api.queueservice.v1.QueueService/DeleteQueue",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteQueueResponse.FromString,
             options,
@@ -1298,23 +1336,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ListQueues(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ListQueues(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/ListQueues',
+            "/chronoqueue.api.queueservice.v1.QueueService/ListQueues",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListQueuesResponse.FromString,
             options,
@@ -1325,23 +1366,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def GetQueueState(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def GetQueueState(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/GetQueueState',
+            "/chronoqueue.api.queueservice.v1.QueueService/GetQueueState",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetQueueStateResponse.FromString,
             options,
@@ -1352,23 +1396,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def PostMessage(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def PostMessage(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/PostMessage',
+            "/chronoqueue.api.queueservice.v1.QueueService/PostMessage",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessageResponse.FromString,
             options,
@@ -1379,23 +1426,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def PostMessagesBulk(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def PostMessagesBulk(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/PostMessagesBulk',
+            "/chronoqueue.api.queueservice.v1.QueueService/PostMessagesBulk",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PostMessagesBulkResponse.FromString,
             options,
@@ -1406,23 +1456,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def GetNextMessage(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def GetNextMessage(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/GetNextMessage',
+            "/chronoqueue.api.queueservice.v1.QueueService/GetNextMessage",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetNextMessageResponse.FromString,
             options,
@@ -1433,23 +1486,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def AcknowledgeMessage(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def AcknowledgeMessage(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/AcknowledgeMessage',
+            "/chronoqueue.api.queueservice.v1.QueueService/AcknowledgeMessage",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.AcknowledgeMessageResponse.FromString,
             options,
@@ -1460,23 +1516,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def CancelMessage(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def CancelMessage(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/CancelMessage',
+            "/chronoqueue.api.queueservice.v1.QueueService/CancelMessage",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.CancelMessageResponse.FromString,
             options,
@@ -1487,23 +1546,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def RenewMessageLease(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def RenewMessageLease(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/RenewMessageLease',
+            "/chronoqueue.api.queueservice.v1.QueueService/RenewMessageLease",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.RenewMessageLeaseResponse.FromString,
             options,
@@ -1514,23 +1576,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def PeekQueueMessages(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def PeekQueueMessages(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/PeekQueueMessages',
+            "/chronoqueue.api.queueservice.v1.QueueService/PeekQueueMessages",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PeekQueueMessagesResponse.FromString,
             options,
@@ -1541,23 +1606,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def SendMessageHeartBeat(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def SendMessageHeartBeat(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/SendMessageHeartBeat',
+            "/chronoqueue.api.queueservice.v1.QueueService/SendMessageHeartBeat",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.SendMessageHeartBeatResponse.FromString,
             options,
@@ -1568,23 +1636,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def CreateSchedule(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def CreateSchedule(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/CreateSchedule',
+            "/chronoqueue.api.queueservice.v1.QueueService/CreateSchedule",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.CreateScheduleResponse.FromString,
             options,
@@ -1595,23 +1666,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def DeleteSchedule(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def DeleteSchedule(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/DeleteSchedule',
+            "/chronoqueue.api.queueservice.v1.QueueService/DeleteSchedule",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteScheduleResponse.FromString,
             options,
@@ -1622,23 +1696,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def GetSchedule(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def GetSchedule(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/GetSchedule',
+            "/chronoqueue.api.queueservice.v1.QueueService/GetSchedule",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleResponse.FromString,
             options,
@@ -1649,23 +1726,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ListSchedules(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ListSchedules(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/ListSchedules',
+            "/chronoqueue.api.queueservice.v1.QueueService/ListSchedules",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchedulesResponse.FromString,
             options,
@@ -1676,23 +1756,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def GetScheduleHistory(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def GetScheduleHistory(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/GetScheduleHistory',
+            "/chronoqueue.api.queueservice.v1.QueueService/GetScheduleHistory",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetScheduleHistoryResponse.FromString,
             options,
@@ -1703,23 +1786,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def PauseSchedule(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def PauseSchedule(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/PauseSchedule',
+            "/chronoqueue.api.queueservice.v1.QueueService/PauseSchedule",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PauseScheduleResponse.FromString,
             options,
@@ -1730,23 +1816,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ResumeSchedule(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ResumeSchedule(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/ResumeSchedule',
+            "/chronoqueue.api.queueservice.v1.QueueService/ResumeSchedule",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ResumeScheduleResponse.FromString,
             options,
@@ -1757,23 +1846,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def GetDLQMessages(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def GetDLQMessages(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/GetDLQMessages',
+            "/chronoqueue.api.queueservice.v1.QueueService/GetDLQMessages",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQMessagesResponse.FromString,
             options,
@@ -1784,23 +1876,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def RequeueFromDLQ(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def RequeueFromDLQ(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/RequeueFromDLQ',
+            "/chronoqueue.api.queueservice.v1.QueueService/RequeueFromDLQ",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.RequeueFromDLQResponse.FromString,
             options,
@@ -1811,23 +1906,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def DeleteFromDLQ(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def DeleteFromDLQ(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/DeleteFromDLQ',
+            "/chronoqueue.api.queueservice.v1.QueueService/DeleteFromDLQ",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteFromDLQResponse.FromString,
             options,
@@ -1838,23 +1936,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def PurgeDLQ(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def PurgeDLQ(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/PurgeDLQ',
+            "/chronoqueue.api.queueservice.v1.QueueService/PurgeDLQ",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PurgeDLQResponse.FromString,
             options,
@@ -1865,23 +1966,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def GetDLQStats(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def GetDLQStats(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/GetDLQStats',
+            "/chronoqueue.api.queueservice.v1.QueueService/GetDLQStats",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetDLQStatsResponse.FromString,
             options,
@@ -1892,23 +1996,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ValidateCalendarSchedule(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ValidateCalendarSchedule(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/ValidateCalendarSchedule',
+            "/chronoqueue.api.queueservice.v1.QueueService/ValidateCalendarSchedule",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidateCalendarScheduleResponse.FromString,
             options,
@@ -1919,23 +2026,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def PreviewCalendarSchedule(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def PreviewCalendarSchedule(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/PreviewCalendarSchedule',
+            "/chronoqueue.api.queueservice.v1.QueueService/PreviewCalendarSchedule",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.PreviewCalendarScheduleResponse.FromString,
             options,
@@ -1946,23 +2056,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def RegisterSchema(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def RegisterSchema(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/RegisterSchema',
+            "/chronoqueue.api.queueservice.v1.QueueService/RegisterSchema",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.RegisterSchemaResponse.FromString,
             options,
@@ -1973,23 +2086,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def GetSchema(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def GetSchema(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/GetSchema',
+            "/chronoqueue.api.queueservice.v1.QueueService/GetSchema",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.GetSchemaResponse.FromString,
             options,
@@ -2000,23 +2116,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ListSchemas(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ListSchemas(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/ListSchemas',
+            "/chronoqueue.api.queueservice.v1.QueueService/ListSchemas",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ListSchemasResponse.FromString,
             options,
@@ -2027,23 +2146,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def DeleteSchema(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def DeleteSchema(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/DeleteSchema',
+            "/chronoqueue.api.queueservice.v1.QueueService/DeleteSchema",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.DeleteSchemaResponse.FromString,
             options,
@@ -2054,23 +2176,26 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
 
     @staticmethod
-    def ValidatePayload(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+    def ValidatePayload(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/chronoqueue.api.queueservice.v1.QueueService/ValidatePayload',
+            "/chronoqueue.api.queueservice.v1.QueueService/ValidatePayload",
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadRequest.SerializeToString,
             proto_dot_queueservice_dot_v1_dot_request__response__pb2.ValidatePayloadResponse.FromString,
             options,
@@ -2081,4 +2206,5 @@ class QueueService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True)
+            _registered_method=True,
+        )
