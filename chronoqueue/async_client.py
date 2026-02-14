@@ -709,7 +709,11 @@ class AsyncChronoqueueClient:
                 raise ValueError(f"Invalid transaction_mode: {transaction_mode}. Must be TransactionMode.ALL_OR_NOTHING or TransactionMode.BEST_EFFORT")
 
             # Add each message to the request
-            for msg_params in messages:
+            for idx, msg_params in enumerate(messages):
+                if msg_params.queue_name and msg_params.queue_name != queue_name:
+                    raise ValueError(
+                        f"messages[{idx}].queue_name must match queue_name='{queue_name}'"
+                    )
                 msg_request = _create_post_message_request(params=msg_params)
                 request.messages.append(msg_request.message)
 
@@ -721,7 +725,7 @@ class AsyncChronoqueueClient:
             logging.error(f"Error posting messages in bulk: {e.details()}")
             error = RpcOperationError(f"Failed to post messages in bulk due to: {e.details()}")
             self._handle_error(error, handler=error_handler)
-        except (ValueError, AttributeError) as e:
+        except (ValueError, AttributeError, TypeError) as e:
             logging.error(f"Invalid parameters for bulk post: {e}")
             error = RpcOperationError(f"Invalid parameters for bulk post: {e}")
             self._handle_error(error, handler=error_handler)
