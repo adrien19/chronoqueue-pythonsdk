@@ -1,12 +1,23 @@
 # Chronoqueue Python SDK
 
+## Archived Project Notice
+
+This project is archived and will not receive further updates.
+
+Chronoqueue is migrating to `nzovu`:
+
+- Service repository: https://github.com/adrien19/nzovu
+- Replacement Python SDK: https://github.com/adrien19/nzovu-sdk-python
+
+New integrations should use the `nzovu` service and the new Python SDK. Existing users of `chronoqueue` should plan a migration, as this package is now maintained only as a historical release for compatibility with older Chronoqueue deployments.
+
 [![CI](https://github.com/adrien19/chronoqueue-pythonsdk/workflows/CI/badge.svg)](https://github.com/adrien19/chronoqueue-pythonsdk/actions/workflows/ci.yml)
 [![PyPI version](https://badge.fury.io/py/chronoqueue.svg)](https://badge.fury.io/py/chronoqueue)
 [![Python Versions](https://img.shields.io/pypi/pyversions/chronoqueue.svg)](https://pypi.org/project/chronoqueue/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-The official Python SDK for the Chronoqueue service. Seamlessly integrate and manage Chronoqueue functionalities in Python applications. Provides an intuitive interface for interacting with the Chronoqueue service using gRPC, with optional SSL/TLS support. Designed for both development and production environments.
+The legacy Python SDK for the Chronoqueue service. This repository remains available for older Chronoqueue deployments, but active development has moved to the `nzovu` ecosystem.
 
 ## Key Features:
 
@@ -27,6 +38,14 @@ Optional SSL/TLS: Toggle SSL/TLS support based on your environment and security 
 - [License](#license)
 
 ## Installation
+
+## Migration Recommendation
+
+Do not start new projects with this package.
+
+- If you are adopting the successor platform, use the `nzovu` service: https://github.com/adrien19/nzovu
+- For Python applications targeting that platform, use the new SDK: https://github.com/adrien19/nzovu-sdk-python
+- Install this package only if you need compatibility with an existing Chronoqueue deployment
 
 To install the Chronoqueue Python SDK, you can use pip:
 
@@ -113,6 +132,8 @@ The project uses GitHub Actions for continuous integration and deployment:
   - Supports manual dispatch to TestPyPI
 
 ## Usage 
+
+The examples below apply only to existing Chronoqueue deployments that still depend on this SDK. For new work, migrate to the `nzovu` service and its Python SDK.
 
 ### Creating a Client
 To create a client to interact with the Chronoqueue service:
@@ -333,6 +354,8 @@ poetry run pytest
 ```
 
 ## Documentation
+
+This documentation is preserved for maintenance and migration purposes only.
 
 Further documentation can be found in the docs/ directory, including:
 
